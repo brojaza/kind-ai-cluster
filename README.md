@@ -206,6 +206,29 @@ token to a public repo) or `huggingface.existingSecret` pointing at a Secret you
 out-of-band with `kubectl create secret generic ... --from-literal=token=hf_xxx`
 (recommended, since it keeps the token out of git entirely).
 
+### Scaling vLLM to zero when idle
+
+vLLM holds the GPU/VRAM the whole time its pod is running, even with no active chat.
+To free that up automatically after 5 minutes of no requests, and have it wake itself
+back up on the next one, install [KEDA](https://keda.sh) and its HTTP Add-on (see
+`docs/WINDOWS-SETUP.md` or [keda.sh](https://keda.sh) for what these actually are):
+
+```bash
+./scripts/06-install-keda-http.sh
+```
+
+Then flip `autoscaling.scaleToZero.enabled` to `true` in `charts/vllm/values.yaml`, and
+update `backend.baseUrl` in `charts/open-webui/values.yaml` to point at the
+`vllm-proxy` Service it creates instead of `vllm` directly (both files have the exact
+values commented in place). Commit and push - Argo CD picks it up like any other change.
+
+This is genuinely extra infrastructure (an operator + CRDs + a rerouted traffic path,
+kept out-of-band from Argo CD the same way ingress-nginx is - see
+`scripts/06-install-keda-http.sh`), and the first request after an idle period will
+hang for up to a couple of minutes while vLLM reloads the model and recompiles its GPU
+kernels, so it's worth it mainly if freeing the GPU between sessions matters more than
+snappy wake-ups. Leave `scaleToZero.enabled: false` (the default) to skip all of this.
+
 ### Cross-chart wiring
 
 Both charts pin `fullnameOverride` so Service names are always `vllm` and `open-webui`,

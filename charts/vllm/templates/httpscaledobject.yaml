@@ -1,0 +1,19 @@
+{{- if .Values.autoscaling.scaleToZero.enabled }}
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: {{ include "vllm.fullname" . }}
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ include "vllm.fullname" . }}-proxy.{{ .Release.Namespace }}.svc.cluster.local
+  scaleTargetRef:
+    name: {{ include "vllm.fullname" . }}
+    service: {{ include "vllm.fullname" . }}
+    port: {{ .Values.service.port }}
+  replicas:
+    min: 0
+    max: {{ .Values.replicaCount }}
+  scaledownPeriod: {{ .Values.autoscaling.scaleToZero.scaledownPeriod }}
+{{- end }}

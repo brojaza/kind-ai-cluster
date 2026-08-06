@@ -1,0 +1,19 @@
+{{- if .Values.autoscaling.scaleToZero.enabled }}
+# ExternalName Service redirecting to the KEDA HTTP Add-on's interceptor, per
+# https://keda.sh/http-add-on/ - clients must use this instead of the vllm Service
+# directly so the interceptor can hold requests during a scale-from-zero cold start
+# and count traffic to decide when to scale back down. The Host header this produces
+# ("{fullname}-proxy.{namespace}.svc.cluster.local") is what httpscaledobject.yaml's
+# `hosts` field matches on to route to the real vllm Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vllm.fullname" . }}-proxy
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+  ports:
+    - port: 8080
+{{- end }}

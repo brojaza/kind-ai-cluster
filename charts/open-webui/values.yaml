@@ -16,6 +16,11 @@ backend:
   # Internal cluster DNS name of the vllm chart's Service. If you change the vllm
   # chart's fullnameOverride or its Argo CD destination.namespace away from "llm",
   # update this to match.
+  #
+  # If charts/vllm/values.yaml has autoscaling.scaleToZero.enabled: true, point this at
+  # the interceptor proxy Service it creates instead, or requests will bypass KEDA's
+  # scale-from-zero wake-up and just fail once vllm is scaled to 0:
+  #   baseUrl: "http://vllm-proxy.llm.svc.cluster.local:8080/v1"
   baseUrl: "http://vllm.llm.svc.cluster.local:8000/v1"
   # vLLM doesn't check this by default (no --api-key flag is set in the vllm chart),
   # but Open WebUI expects a non-empty value before it will query an OpenAI-compatible

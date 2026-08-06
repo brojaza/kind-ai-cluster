@@ -131,3 +131,24 @@ startupProbe:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+autoscaling:
+  scaleToZero:
+    # Scales the vllm Deployment to 0 replicas after `scaledownPeriod` seconds with no
+    # requests (freeing the GPU/VRAM), and transparently wakes it back up on the next
+    # request. Requires KEDA + the KEDA HTTP Add-on installed first
+    # (scripts/06-install-keda-http.sh) - if their CRDs aren't present, Argo CD will
+    # fail to sync this chart with this flag on. Leave false until that's done.
+    #
+    # When true this also creates an ExternalName Service ("vllm-proxy") that routes
+    # through the HTTP Add-on's interceptor - point charts/open-webui/values.yaml's
+    # backend.baseUrl at it (http://vllm-proxy.<namespace>.svc.cluster.local:8080/v1)
+    # instead of the vllm Service directly, or requests will bypass the interceptor
+    # and just fail once vllm is scaled to 0.
+    #
+    # Cold start after idle isn't instant: vLLM has to reload the model onto the GPU
+    # and (at least once per pod lifetime, since the JIT kernel cache isn't on the
+    # persisted PVC) recompile the low-bit GEMM kernel - budget up to a couple of
+    # minutes for the first request after idle to come back.
+    enabled: false
+    scaledownPeriod: 300
