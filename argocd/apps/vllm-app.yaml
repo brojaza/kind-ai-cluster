@@ -16,6 +16,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: llm
+  # KEDA's HPA (see charts/vllm/templates/httpscaledobject.yaml, when
+  # autoscaling.scaleToZero.enabled) drives spec.replicas directly. Without this, Argo
+  # CD's selfHeal fights it every reconcile: KEDA scales to 0, Argo CD sees a diff from
+  # the chart's static replicaCount and scales back to 1, KEDA scales to 0 again, etc.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: vllm
+      jsonPointers:
+        - /spec/replicas
   syncPolicy:
     automated:
       prune: true
