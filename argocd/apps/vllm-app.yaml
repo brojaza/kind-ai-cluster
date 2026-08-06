@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_USERNAME/YOUR_REPO.git # <-- run scripts/00-set-repo-url.sh
+    repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
     targetRevision: main
     path: charts/vllm
     helm:
