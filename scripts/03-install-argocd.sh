@@ -2,7 +2,11 @@
 set -euo pipefail
 
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# --server-side: Argo CD's CRDs (especially ApplicationSet) are large enough that
+# client-side apply's "last-applied-configuration" annotation exceeds the 262144-byte
+# etcd/API cap. Server-side apply doesn't store that annotation, so it doesn't hit the
+# limit.
+kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 echo "Waiting for argocd-server to roll out (can take a couple of minutes on first pull)..."
 kubectl -n argocd rollout status deployment/argocd-server --timeout=300s
