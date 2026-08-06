@@ -150,5 +150,5 @@ autoscaling:
     # and (at least once per pod lifetime, since the JIT kernel cache isn't on the
     # persisted PVC) recompile the low-bit GEMM kernel - budget up to a couple of
     # minutes for the first request after idle to come back.
-    enabled: false
+    enabled: true
     scaledownPeriod: 300
