@@ -41,6 +41,8 @@ spec:
               value: {{ .Values.backend.apiKey | quote }}
             - name: ENABLE_OLLAMA_API
               value: "false"
+            - name: AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST
+              value: {{ .Values.backend.modelListTimeoutSeconds | quote }}
             - name: WEBUI_AUTH
               value: {{ .Values.auth.enabled | quote }}
             - name: WEBUI_SECRET_KEY

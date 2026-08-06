@@ -22,6 +22,14 @@ backend:
   # scale-from-zero wake-up and just fail once vllm is scaled to 0:
   #   baseUrl: "http://vllm-proxy.llm.svc.cluster.local:8080/v1"
   baseUrl: "http://vllm-proxy.llm.svc.cluster.local:8080/v1"
+  # How long Open WebUI waits on a GET /v1/models call before giving up (its default
+  # is 10s). If charts/vllm's autoscaling.scaleToZero is enabled, 10s isn't enough -
+  # the KEDA interceptor holds that request while vllm cold-starts (~4 minutes
+  # measured, model load + one-time GPU kernel JIT compile), so Open WebUI times out
+  # first and shows "no model detected" even though vllm is actually on its way up.
+  # Raised to cover that; means a fully-cold page load can sit loading for a while
+  # instead of erroring immediately. Set back to 10 if scaleToZero is off.
+  modelListTimeoutSeconds: 300
   # vLLM doesn't check this by default (no --api-key flag is set in the vllm chart),
   # but Open WebUI expects a non-empty value before it will query an OpenAI-compatible
   # connection.
