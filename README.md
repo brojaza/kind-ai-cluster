@@ -106,6 +106,14 @@ kubectl -n argocd port-forward svc/argocd-server 8443:443
 ```
 then open `https://localhost:8443` (self-signed cert, your browser will warn you).
 
+For persistent access without keeping a port-forward running, install ingress-nginx
+instead:
+```bash
+./scripts/05-install-ingress.sh
+```
+Same URL (`https://localhost:8443`), but it stays up on its own - see
+`manifests/argocd-ingress.yaml` for how the ssl-passthrough routing works.
+
 ### 4. Push this project to your own git repo
 
 ```bash

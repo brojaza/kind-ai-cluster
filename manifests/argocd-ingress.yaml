@@ -1,0 +1,36 @@
+# Persistent HTTPS access to the Argo CD UI/API, replacing the `kubectl port-forward`
+# workflow. Reuses the hostPort:8443 -> containerPort:30443 mapping already reserved in
+# kind-config.yaml (originally intended for a direct NodePort on argocd-server itself;
+# repurposed here for the ingress-nginx controller's NodePort instead - see
+# docs/WINDOWS-SETUP.md).
+#
+# Requires ingress-nginx installed with --enable-ssl-passthrough (not a default flag -
+# see scripts/05-install-ingress.sh) and its Service patched to NodePort 30443 for
+# https. ssl-passthrough is used (rather than TLS-terminate-at-ingress) because Argo CD
+# serves both its UI/REST API and a gRPC API over the same HTTPS port via content-type
+# negotiation; a second TLS hop in between can break gRPC. Passthrough means nginx
+# never decrypts the traffic - it routes purely on the TLS ClientHello's SNI hostname,
+# which is why `host` below MUST be set (unlike normal Ingress, there's no HTTP
+# Host-header fallback). Set to "localhost" so no /etc/hosts entry is needed - that's
+# what a browser or curl will send as SNI when connecting to https://localhost:8443.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 443
