@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vllm
+description: Serves a Qwen coder model via vLLM's OpenAI-compatible API server (see values.yaml for model.id)
+type: application
+version: 0.1.0
+appVersion: "latest"

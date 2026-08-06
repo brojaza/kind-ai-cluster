@@ -1,0 +1,18 @@
+vLLM is starting, serving {{ .Values.model.id }}.
+
+First start can take a while - it downloads the model weights into the model-cache PVC
+before it can load them onto the GPU. Watch progress with:
+
+  kubectl -n {{ .Release.Namespace }} logs -f deploy/{{ include "vllm.fullname" . }}
+
+Check readiness:
+
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+Once ready, the OpenAI-compatible API is reachable from elsewhere in the cluster at:
+
+  http://{{ include "vllm.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}/v1
+
+or, from a pod in the same namespace, just:
+
+  http://{{ include "vllm.fullname" . }}:{{ .Values.service.port }}/v1

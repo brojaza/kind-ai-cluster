@@ -1,0 +1,26 @@
+# Bootstrap Application - "app of apps" root. Apply this one manually:
+#   kubectl apply -f argocd/root-app.yaml
+# Everything else (the vllm and open-webui Applications, and in turn their Helm charts)
+# is then synced automatically by Argo CD from git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: qwen3-coder-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_USERNAME/YOUR_REPO.git # <-- run scripts/00-set-repo-url.sh
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

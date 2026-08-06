@@ -1,0 +1,39 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kind-ai-cluster
+nodes:
+  - role: control-plane
+    # Custom image = kindest/node:v1.30.0 + NVIDIA_VISIBLE_DEVICES/NVIDIA_DRIVER_CAPABILITIES
+    # env vars baked in (see docs/WINDOWS-SETUP.md). Needed because Docker's "nvidia"
+    # default runtime only injects the GPU into a container whose env already requests
+    # it, and kind's stock node image doesn't set that - there's no kind-config.yaml
+    # field to inject env vars into the node container directly.
+    image: kindest/node:v1.30.0-gpu
+    extraPortMappings:
+      # Open WebUI - matches charts/open-webui values.yaml service.nodePort.
+      # After setup, the UI is at http://localhost:8080
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      # Argo CD server, once exposed as NodePort (optional convenience - the README's
+      # default access method is `kubectl port-forward` instead, so this is unused
+      # unless you patch the argocd-server Service to NodePort 30443 yourself).
+      - containerPort: 30443
+        hostPort: 8443
+        protocol: TCP
+
+# --- GPU passthrough ---
+# Only needed if charts/vllm/values.yaml has gpu.enabled: true (the default).
+# Uncomment the block below AFTER completing the host-side setup described in
+# README.md's "GPU passthrough for Kind" section (NVIDIA driver + NVIDIA Container
+# Toolkit + Docker default runtime set to nvidia). Then recreate the cluster.
+#
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
+      privileged_without_host_devices = false
+      runtime_engine = ""
+      runtime_root = ""
+      runtime_type = "io.containerd.runc.v2"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia.options]
+      BinaryName = "/usr/bin/nvidia-container-runtime"

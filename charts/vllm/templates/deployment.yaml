@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vllm.fullname" . }}
+  labels:
+    {{- include "vllm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "vllm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "vllm.selectorLabels" . | nindent 8 }}
+    spec:
+      # Kubernetes auto-injects <SVC>_SERVICE_HOST/_PORT-style env vars for every
+      # Service in the namespace, including this chart's own "vllm" Service. That
+      # collides with vLLM's own internal VLLM_PORT env var (used for engine-internal
+      # comms), which then fails to parse the injected "tcp://host:port" URI as an
+      # int. See https://docs.vllm.ai/en/latest/configuration/env_vars.html.
+      enableServiceLinks: false
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.gpu.wsl2 }}
+          # WSL2/Docker Desktop GPU passthrough: the CUDA driver libs live under a
+          # driver-specific hash directory that isn't known ahead of time, so it's
+          # discovered at container start rather than hardcoded. See gpu.wsl2 comment
+          # in values.yaml.
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              NVDIR=$(dirname "$(find /usr/lib/wsl/drivers -maxdepth 2 -iname nvidia-smi 2>/dev/null | head -1)")
+              export LD_LIBRARY_PATH="/usr/lib/wsl/lib:${NVDIR}:${LD_LIBRARY_PATH}"
+              # /usr/lib/wsl (read-only mount) only has the versioned libcuda.so.1 -
+              # fine for the dynamic loader (LD_LIBRARY_PATH above), but `ld -lcuda`
+              # (used when a quant kernel needs to JIT-compile a CUDA extension, e.g.
+              # compressed-tensors low-bit kernels) looks for an unversioned libcuda.so
+              # and fails with "cannot find -lcuda" without it. Symlink into the
+              # container's own (writable) lib dir, which is already on ld's default
+              # search path.
+              ln -sf "${NVDIR}/libcuda.so.1" /usr/lib/x86_64-linux-gnu/libcuda.so
+              exec vllm serve "$@"
+            - --
+          {{- end }}
+          args:
+            - "--model"
+            - "{{ .Values.model.id }}"
+            {{- if .Values.model.tokenizer }}
+            - "--tokenizer"
+            - "{{ .Values.model.tokenizer }}"
+            {{- end }}
+            - "--served-model-name"
+            - "{{ .Values.model.servedName }}"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ .Values.server.port | toString }}"
+            - "--max-model-len"
+            - "{{ .Values.model.maxModelLen | toString }}"
+            - "--gpu-memory-utilization"
+            - "{{ .Values.server.gpuMemoryUtilization }}"
+            {{- if .Values.toolCalling.enabled }}
+            - "--enable-auto-tool-choice"
+            - "--tool-call-parser"
+            - "{{ .Values.toolCalling.parser }}"
+            {{- end }}
+            {{- range .Values.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.port }}
+              protocol: TCP
+          env:
+            - name: HF_HOME
+              value: /root/.cache/huggingface
+            {{- if .Values.gpu.wsl2 }}
+            # vLLM disables CUDA pinned memory (and therefore Unified Virtual
+            # Addressing) by default under WSL2, even on kernels that support it,
+            # and requires this explicit opt-in - see vllm/platforms/cuda.py
+            # is_pin_memory_available(). Without it, engine startup fails with
+            # "RuntimeError: UVA is not available". Needs WSL2 kernel >= 4.19.121
+            # (check with `wsl --version` / `uname -r` inside WSL - Windows 11's
+            # default WSL2 kernel is well above this).
+            - name: VLLM_WSL2_ENABLE_PIN_MEMORY
+              value: "1"
+            {{- end }}
+            {{- if .Values.huggingface.tokenEnabled }}
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vllm.hfSecretName" . }}
+                  key: token
+            {{- end }}
+          {{- if .Values.gpu.wsl2 }}
+          securityContext:
+            # No standard Kubernetes way to grant a raw hostPath device node without
+            # privileged - see gpu.wsl2 comment in values.yaml. Scoped to this chart's
+            # single-container local dev pod only.
+            privileged: true
+          {{- end }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu | quote }}
+              memory: {{ .Values.resources.requests.memory | quote }}
+              {{- if and .Values.gpu.enabled (not .Values.gpu.wsl2) }}
+              nvidia.com/gpu: {{ .Values.gpu.count }}
+              {{- end }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+              memory: {{ .Values.resources.limits.memory | quote }}
+              {{- if and .Values.gpu.enabled (not .Values.gpu.wsl2) }}
+              nvidia.com/gpu: {{ .Values.gpu.count }}
+              {{- end }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache/huggingface
+            - name: dshm
+              mountPath: /dev/shm
+            {{- if .Values.gpu.wsl2 }}
+            - name: wsl-lib
+              mountPath: /usr/lib/wsl
+              readOnly: true
+            - name: dxg
+              mountPath: /dev/dxg
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+      volumes:
+        - name: model-cache
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "vllm.fullname" . }}-model-cache
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.shmSize }}
+        {{- if .Values.gpu.wsl2 }}
+        - name: wsl-lib
+          hostPath:
+            path: /usr/lib/wsl
+            type: Directory
+        - name: dxg
+          hostPath:
+            path: /dev/dxg
+            type: CharDevice
+        {{- end }}

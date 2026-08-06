@@ -1,0 +1,63 @@
+# Default values for the open-webui chart. See README.md at the repo root for context.
+
+replicaCount: 1
+
+nameOverride: ""
+# Pinned so the Service is always named "open-webui" regardless of the Helm release
+# name Argo CD assigns.
+fullnameOverride: "open-webui"
+
+image:
+  repository: ghcr.io/open-webui/open-webui
+  tag: main # Pin to a specific release for reproducible deployments
+  pullPolicy: IfNotPresent
+
+backend:
+  # Internal cluster DNS name of the vllm chart's Service. If you change the vllm
+  # chart's fullnameOverride or its Argo CD destination.namespace away from "llm",
+  # update this to match.
+  baseUrl: "http://vllm.llm.svc.cluster.local:8000/v1"
+  # vLLM doesn't check this by default (no --api-key flag is set in the vllm chart),
+  # but Open WebUI expects a non-empty value before it will query an OpenAI-compatible
+  # connection.
+  apiKey: "sk-local-no-auth"
+
+auth:
+  # The first account registered after install becomes the Open WebUI admin.
+  enabled: true
+
+# Used to sign session cookies. Fine as a placeholder for a local throwaway cluster;
+# change it to a random string (e.g. `openssl rand -hex 32`) for anything longer-lived,
+# since anyone with this value can forge sessions.
+webuiSecretKey: "change-this-to-a-random-string"
+
+service:
+  type: NodePort
+  port: 8080
+  # Matches the hostPort mapping in kind-config.yaml (30080 -> 8080).
+  nodePort: 30080
+
+ingress:
+  enabled: false
+  className: ""
+  host: open-webui.local
+  annotations: {}
+
+persistence:
+  enabled: true
+  storageClassName: standard
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

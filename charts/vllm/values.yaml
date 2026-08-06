@@ -1,0 +1,133 @@
+# Default values for the vllm chart. See README.md at the repo root for the
+# fuller explanation of the trade-offs behind these defaults.
+
+replicaCount: 1
+
+nameOverride: ""
+# Pinned so the Service is always named "vllm" regardless of the Helm release name
+# Argo CD assigns - charts/open-webui relies on this for its baseUrl default.
+fullnameOverride: "vllm"
+
+image:
+  repository: vllm/vllm-openai
+  tag: latest # Pin to a specific release (e.g. "v0.11.0") for reproducible deployments
+  pullPolicy: IfNotPresent
+
+model:
+  # HuggingFace repo id of the model to serve.
+  # This is Google's own officially-quantized checkpoint (compressed-tensors format,
+  # INT2 on the embedding table + lm_head, low-bit on the rest) - NOT the plain
+  # google/gemma-4-E4B-it repo. That distinction matters a lot here: Gemma 4's ~256K
+  # vocab embedding table dominates raw weight size regardless of "E4B"/"E2B" active-
+  # param count, so community AWQ/FP8 quants that only quantize linear layers still
+  # land at ~9.6-13GB (barely fits a 12GB card with zero KV-cache headroom). This
+  # "-qat-mobile-ct" checkpoint quantizes the embedding table too, landing at ~3.5GB -
+  # confirmed via the HF API (not the repo's rendered page, which mis-reports sizes)
+  # before switching. vLLM's installed build has native Gemma4ForConditionalGeneration
+  # support (vllm/model_executor/models/gemma4_mm.py) - confirm this still holds if you
+  # change the vLLM image tag.
+  id: "google/gemma-4-E4B-it-qat-mobile-ct"
+  # Leave "" - this is a standard (non-GGUF) HF repo with its own tokenizer, no
+  # override needed. See the GGUF attempt this replaced for why this field exists at
+  # all (kept for whenever a future model swap needs it again).
+  tokenizer: ""
+  # Name exposed to API clients and shown in Open WebUI's model picker.
+  servedName: gemma-4-E4B-it-qat-mobile
+  # Context window passed to vLLM via --max-model-len. Native support is 128K, but that
+  # needs much more KV-cache memory than a single RTX 3060 12GB has room for once the
+  # ~5.3GB GGUF weights are loaded - 32768 leaves comfortable headroom. Raise it if you
+  # have the VRAM.
+  maxModelLen: 32768
+
+server:
+  port: 8000
+  # Fraction of GPU memory vLLM is allowed to reserve for weights + KV cache. Left some
+  # headroom below the RTX 3060's 12GB since Windows itself already holds ~1GB for
+  # desktop compositing.
+  gpuMemoryUtilization: "0.85"
+
+toolCalling:
+  # vLLM's docs don't mention a Gemma 4 parser (only the separate, purpose-built
+  # FunctionGemma's "functiongemma"), but the installed image does ship one - found by
+  # checking vllm/tool_parsers/__init__.py directly rather than trusting the docs
+  # (same lesson as the GGUF support gap earlier: docs.vllm.ai can be ahead of or
+  # behind whatever's actually in a given image tag). Registered name is "gemma4"
+  # (class Gemma4EngineToolParser). Without --enable-auto-tool-choice +
+  # --tool-call-parser set, any client request with tool_choice:"auto" (Open WebUI
+  # sends this whenever tools/functions are configured) fails with: "'auto' tool
+  # choice requires --enable-auto-tool-choice and --tool-call-parser to be set".
+  enabled: true
+  parser: gemma4
+
+# Extra raw flags appended to `vllm serve` as-is, e.g. for multi-GPU setups:
+#   extraArgs:
+#     - "--tensor-parallel-size"
+#     - "2"
+#     - "--enable-expert-parallel"
+extraArgs: []
+
+huggingface:
+  # Only needed for gated/private models, or to raise download rate limits - Qwen3
+  # models are open. If tokenEnabled is true you must set EITHER token OR
+  # existingSecret (existingSecret is recommended - it keeps the token out of git).
+  tokenEnabled: false
+  token: ""
+  existingSecret: ""
+
+gpu:
+  # Set to false only if you understand vLLM will fall back to CPU execution, which
+  # is not practically usable for a model this size - see README.md.
+  enabled: true
+  count: 1
+  # Windows/WSL2 + Docker Desktop don't provide classic /dev/nvidia* device nodes or a
+  # working nvidia-container-runtime inside the Kind node (Docker Desktop's GPU support
+  # is WSL2-specific paravirtualization: /dev/dxg + driver libs under /usr/lib/wsl,
+  # injected only into containers Docker itself creates - not into nested pods a Kind
+  # node schedules). When true, the deployment hostPath-mounts /dev/dxg and
+  # /usr/lib/wsl directly into the container and runs privileged, instead of
+  # requesting the nvidia.com/gpu extended resource via the standard device-plugin
+  # path. Leave this false on native Linux with the NVIDIA device plugin installed
+  # (see README's "GPU passthrough for Kind" section) - there, gpu.count above is
+  # what matters.
+  wsl2: true
+
+resources:
+  # Sized for a 7B AWQ model on a Docker Desktop/WSL2 host with ~20GB total VM memory
+  # shared with the rest of the cluster - raise these if you have a bigger box.
+  requests:
+    cpu: "2"
+    memory: 6Gi
+  limits:
+    cpu: "4"
+    memory: 10Gi
+  # nvidia.com/gpu requests/limits are added automatically from gpu.count/gpu.enabled
+  # above - see templates/deployment.yaml.
+
+# Size of the /dev/shm mount. PyTorch/NCCL want more than Docker's tiny 64Mi default,
+# especially once tensor-parallel-size > 1.
+shmSize: 4Gi
+
+persistence:
+  enabled: true
+  # Caches downloaded model weights across pod restarts. The current model.id is only
+  # a few GB, so this has generous headroom without needing 150Gi like the original
+  # 61GB model did. Kind's default StorageClass (local-path-provisioner) is named
+  # "standard" and works out of the box.
+  storageClassName: standard
+  size: 20Gi
+  accessModes:
+    - ReadWriteOnce
+
+service:
+  type: ClusterIP
+  port: 8000
+
+startupProbe:
+  # periodSeconds * failureThreshold = grace period before liveness/readiness kick in.
+  # Default here is 30 minutes to cover first-run weight download + model load.
+  periodSeconds: 30
+  failureThreshold: 60
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
