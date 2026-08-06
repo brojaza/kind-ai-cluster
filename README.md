@@ -107,7 +107,9 @@ kubectl -n argocd port-forward svc/argocd-server 8443:443
 then open `https://localhost:8443` (self-signed cert, your browser will warn you).
 
 For persistent access without keeping a port-forward running, install ingress-nginx
-instead:
+instead. Note this needs the repo pushed to git and the apps bootstrapped first (steps
+4-7 below), since the actual `Ingress` resource is Argo CD-managed
+(`argocd/apps/argocd-ingress-app.yaml`) rather than applied directly:
 ```bash
 ./scripts/05-install-ingress.sh
 ```

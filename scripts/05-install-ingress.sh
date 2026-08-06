@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Installs ingress-nginx and exposes the Argo CD UI/API at https://localhost:8443
-# persistently, replacing the `kubectl port-forward` workflow. See
-# manifests/argocd-ingress.yaml for why ssl-passthrough is used, and
+# Installs the ingress-nginx controller (out-of-band, not git/Argo CD-managed) and
+# configures it for the Argo CD UI/API at https://localhost:8443, replacing the
+# `kubectl port-forward` workflow. The actual Ingress resource
+# (manifests/argocd-ingress.yaml) is applied separately by Argo CD itself, via
+# argocd/apps/argocd-ingress-app.yaml - see that file and
 # docs/WINDOWS-SETUP.md for the full explanation of the port reuse.
 #
-# Requires scripts/03-install-argocd.sh to have been run first.
+# Requires scripts/03-install-argocd.sh and scripts/04-bootstrap-apps.sh to have been
+# run first (the latter is what actually creates the Ingress, via Argo CD).
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 INGRESS_NGINX_VERSION="controller-v1.15.1"
 
 kubectl apply -f "https://raw.githubusercontent.com/kubernetes/ingress-nginx/${INGRESS_NGINX_VERSION}/deploy/static/provider/cloud/deploy.yaml"
@@ -31,9 +32,11 @@ else
   echo "  (already enabled)"
 fi
 
-kubectl apply -f "${REPO_ROOT}/manifests/argocd-ingress.yaml"
-
 echo
-echo "Argo CD is now reachable at https://localhost:8443 (self-signed cert, your"
-echo "browser will warn you) - no port-forward needed. Verify with:"
+echo "Controller ready. The Ingress resource itself is managed by Argo CD -"
+echo "make sure argocd/apps/argocd-ingress-app.yaml has synced:"
+echo "  kubectl -n argocd get application argocd-ingress"
+echo
+echo "Once synced, Argo CD is reachable at https://localhost:8443 (self-signed cert,"
+echo "your browser will warn you) - no port-forward needed. Verify with:"
 echo "  curl -k https://localhost:8443/api/version"
