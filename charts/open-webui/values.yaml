@@ -30,6 +30,23 @@ backend:
   # Raised to cover that; means a fully-cold page load can sit loading for a while
   # instead of erroring immediately. Set back to 10 if scaleToZero is off.
   modelListTimeoutSeconds: 300
+  # If set, skips live model discovery (GET /v1/models) entirely and shows this model
+  # id in the picker unconditionally - see open_webui/routers/openai.py's
+  # get_all_models_responses(): a non-empty api_configs[idx].model_ids list short-
+  # circuits straight to a synthetic response, no HTTP call made. Recommended whenever
+  # scaleToZero is on: removes the dependency on modelListTimeoutSeconds above, and
+  # means Open WebUI never triggers a KEDA wake-up just by loading the model list.
+  # Must match charts/vllm/values.yaml's model.servedName. Leave "" to use live
+  # discovery (the default, fine when scaleToZero is off).
+  #
+  # NOTE: Open WebUI only reads OPENAI_API_BASE_URL/OPENAI_API_CONFIGS to *seed* its
+  # database on first boot - once written, the DB value takes precedence over the env
+  # var on every subsequent boot. If you're changing this on an already-running
+  # cluster (not a fresh PVC), the env var change alone won't take effect; you also
+  # need to update the persisted value directly, e.g.:
+  #   kubectl -n llm exec deploy/open-webui -- python3 -c "..." (see git history/chat
+  #   log for the exact one-off snippet used here), then restart the pod.
+  hardcodedModelId: "gemma-4-E4B-it-qat-mobile"
   # vLLM doesn't check this by default (no --api-key flag is set in the vllm chart),
   # but Open WebUI expects a non-empty value before it will query an OpenAI-compatible
   # connection.

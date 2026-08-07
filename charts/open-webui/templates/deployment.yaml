@@ -43,6 +43,10 @@ spec:
               value: "false"
             - name: AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST
               value: {{ .Values.backend.modelListTimeoutSeconds | quote }}
+            {{- if .Values.backend.hardcodedModelId }}
+            - name: OPENAI_API_CONFIGS
+              value: {{ dict "0" (dict "enable" true "model_ids" (list .Values.backend.hardcodedModelId)) | toJson | quote }}
+            {{- end }}
             - name: WEBUI_AUTH
               value: {{ .Values.auth.enabled | quote }}
             - name: WEBUI_SECRET_KEY
