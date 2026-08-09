@@ -2,6 +2,13 @@
 # shape this gets turned into. Manages charts/argocd-ingress (just the Ingress - see
 # cert-manager-issuer.yaml for the selfsigned ClusterIssuer Open WebUI's Ingress
 # actually depends on).
+#
+# argocdHost is applied as a Helm parameter (platform-apps.yaml's templatePatch),
+# overriding charts/argocd-ingress/values.yaml's host - see argocd/workload-apps/
+# vllm.yaml's comment for why this pattern replaced apply-env.sh editing values.yaml
+# directly. Settable via prereqs/.env's ARGOCD_HOST - see prereqs/apply-env.sh. Keep
+# the trailing comment on its line if you edit by hand (substitution anchor).
 name: argocd-ingress
 sourcePath: charts/argocd-ingress
 namespace: argocd
+argocdHost: argocd.company.test # PREREQS:ARGOCD_HOST

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Writes values from prereqs/.env into git-tracked files - the only way to keep a
 # single source of truth for these without adding runtime env-var support Argo CD
-# doesn't have: it reads argocd/appsets/*.yaml and each chart's values.yaml straight
-# from git, continuously, with no concept of a shell env var. So "global env var"
-# here means "substituted into committed files by this script before you commit",
+# doesn't have: it reads argocd/appsets/*.yaml and argocd/{workload,platform}-apps/*.yaml
+# straight from git, continuously, with no concept of a shell env var. So "global env
+# var" here means "substituted into committed files by this script before you commit",
 # not an actual env var read at deploy time - same tradeoff as GIT_REPO_URL below,
 # just extended to a few more knobs.
 #
@@ -15,10 +15,14 @@
 #    placeholder URL text.
 #
 # 2. Everything else -> matched by a ` # PREREQS:<NAME>` trailing-comment anchor on
-#    the target line in the relevant chart's values.yaml, not by matching the
-#    current value (unlike GIT_REPO_URL's placeholder-text match, a value like
-#    "true" or "300" isn't unique enough within a file to safely blind-replace).
-#    Search for `# PREREQS:` across charts/ to see every anchor.
+#    the target line in the relevant app's params file under argocd/workload-apps/ or
+#    argocd/platform-apps/, not by matching the current value (unlike GIT_REPO_URL's
+#    placeholder-text match, a value like "true" or "300" isn't unique enough within a
+#    file to safely blind-replace). These params files feed each chart via a Helm
+#    parameter in the matching ApplicationSet's templatePatch - not the chart's own
+#    values.yaml directly (which only holds the standalone-`helm install` default) -
+#    see argocd/workload-apps/vllm.yaml's comment. Search for `# PREREQS:` across
+#    argocd/ to see every anchor.
 #
 # Safe to re-run any time .env changes - every substitution is idempotent (matches
 # on the anchor/placeholder, not on "value differs from default").
@@ -76,11 +80,11 @@ set_anchored_value() {
   echo "Updated ${file} (${marker} -> ${value})"
 }
 
-set_anchored_value "${REPO_ROOT}/charts/argocd-ingress/values.yaml" "ARGOCD_HOST" "${ARGOCD_HOST}"
-set_anchored_value "${REPO_ROOT}/charts/open-webui/values.yaml" "CHAT_HOST" "${CHAT_HOST}"
-set_anchored_value "${REPO_ROOT}/charts/vllm/values.yaml" "VLLM_GPU_ENABLED" "${VLLM_GPU_ENABLED}"
-set_anchored_value "${REPO_ROOT}/charts/vllm/values.yaml" "VLLM_SCALE_TO_ZERO_ENABLED" "${VLLM_SCALE_TO_ZERO_ENABLED}"
-set_anchored_value "${REPO_ROOT}/charts/vllm/values.yaml" "VLLM_SCALEDOWN_PERIOD" "${VLLM_SCALEDOWN_PERIOD}"
+set_anchored_value "${REPO_ROOT}/argocd/platform-apps/argocd-ingress.yaml" "ARGOCD_HOST" "${ARGOCD_HOST}"
+set_anchored_value "${REPO_ROOT}/argocd/workload-apps/open-webui.yaml" "CHAT_HOST" "${CHAT_HOST}"
+set_anchored_value "${REPO_ROOT}/argocd/workload-apps/vllm.yaml" "VLLM_GPU_ENABLED" "\"${VLLM_GPU_ENABLED}\""
+set_anchored_value "${REPO_ROOT}/argocd/workload-apps/vllm.yaml" "VLLM_SCALE_TO_ZERO_ENABLED" "\"${VLLM_SCALE_TO_ZERO_ENABLED}\""
+set_anchored_value "${REPO_ROOT}/argocd/workload-apps/vllm.yaml" "VLLM_SCALEDOWN_PERIOD" "\"${VLLM_SCALEDOWN_PERIOD}\""
 
 echo
 echo "Done. Review the diff (git diff) before committing."

@@ -1,5 +1,12 @@
 # Discovered by argocd/appsets/workload-apps.yaml - see there for the Application
 # shape this gets turned into.
+#
+# chatHost is applied as a Helm parameter (workload-apps.yaml's templatePatch),
+# overriding charts/open-webui/values.yaml's ingress.host - see argocd/workload-apps/
+# vllm.yaml's comment for why this pattern replaced apply-env.sh editing values.yaml
+# directly. Settable via prereqs/.env's CHAT_HOST - see prereqs/apply-env.sh. Keep the
+# trailing comment on its line if you edit by hand (substitution anchor).
 name: open-webui
 sourcePath: charts/open-webui
 namespace: llm
+chatHost: chat.company.test # PREREQS:CHAT_HOST

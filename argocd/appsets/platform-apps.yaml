@@ -40,3 +40,16 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+  # argocdHost reaches charts/argocd-ingress via a Helm parameter here (see
+  # argocd/platform-apps/argocd-ingress.yaml's comment and workload-apps.yaml's
+  # matching templatePatch, which this mirrors) - `if` guards it since
+  # cert-manager-issuer.yaml doesn't set this field.
+  templatePatch: |
+    {{- if .argocdHost }}
+    spec:
+      source:
+        helm:
+          parameters:
+            - name: host
+              value: "{{.argocdHost}}"
+    {{- end }}

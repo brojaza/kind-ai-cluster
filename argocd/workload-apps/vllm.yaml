@@ -1,7 +1,19 @@
 # Discovered by argocd/appsets/workload-apps.yaml - see there for the Application
 # shape this gets turned into. ignoreReplicas triggers the KEDA/selfHeal fix - see
 # that file's comments.
+#
+# gpuEnabled/scaleToZeroEnabled/scaledownPeriod are applied as Helm parameters
+# (workload-apps.yaml's templatePatch), overriding charts/vllm/values.yaml's
+# gpu.enabled/autoscaling.scaleToZero.{enabled,scaledownPeriod} - highest Helm value
+# precedence, so this is the actual effective value for the GitOps deployment.
+# values.yaml's own defaults still apply for a standalone `helm install`. Settable via
+# prereqs/.env's VLLM_GPU_ENABLED/VLLM_SCALE_TO_ZERO_ENABLED/VLLM_SCALEDOWN_PERIOD - see
+# prereqs/apply-env.sh. Keep each trailing comment on its line if you edit by hand
+# (substitution anchor).
 name: vllm
 sourcePath: charts/vllm
 namespace: llm
 ignoreReplicas: true
+gpuEnabled: "true" # PREREQS:VLLM_GPU_ENABLED
+scaleToZeroEnabled: "true" # PREREQS:VLLM_SCALE_TO_ZERO_ENABLED
+scaledownPeriod: "300" # PREREQS:VLLM_SCALEDOWN_PERIOD

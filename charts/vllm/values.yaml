@@ -76,10 +76,10 @@ huggingface:
 
 gpu:
   # Set to false only if you understand vLLM will fall back to CPU execution, which
-  # is not practically usable for a model this size - see README.md. Settable via
-  # prereqs/.env's VLLM_GPU_ENABLED - see prereqs/apply-env.sh (keep the trailing
-  # comment on this line if you edit it by hand - substitution anchor).
-  enabled: true # PREREQS:VLLM_GPU_ENABLED
+  # is not practically usable for a model this size - see README.md. Default here is
+  # only what a standalone `helm install` gets - the GitOps deployment overrides this
+  # via a Helm parameter instead (see argocd/workload-apps/vllm.yaml's comment).
+  enabled: true
   count: 1
   # Windows/WSL2 + Docker Desktop don't provide classic /dev/nvidia* device nodes or a
   # working nvidia-container-runtime inside the Kind node (Docker Desktop's GPU support
@@ -153,12 +153,13 @@ autoscaling:
     # persisted PVC) recompile the low-bit GEMM kernel - budget up to a couple of
     # minutes for the first request after idle to come back.
     #
-    # Both settable via prereqs/.env's VLLM_SCALE_TO_ZERO_ENABLED/VLLM_SCALEDOWN_PERIOD
-    # - see prereqs/apply-env.sh. Toggling `enabled` here does NOT flip
+    # Defaults here are only what a standalone `helm install` gets - the GitOps
+    # deployment overrides both via Helm parameters instead (see
+    # argocd/workload-apps/vllm.yaml's comment). Toggling `enabled` here does NOT flip
     # charts/open-webui/values.yaml's backend.baseUrl for you - that's a separate,
     # deliberately-manual step (see the comment on backend.baseUrl there), since
     # Open WebUI's DB caches whatever baseUrl was in effect on its first boot and
     # won't pick up a changed one without a manual DB patch on an already-running
     # cluster. prereqs/apply-env.sh prints a reminder about this.
-    enabled: true # PREREQS:VLLM_SCALE_TO_ZERO_ENABLED
-    scaledownPeriod: 300 # PREREQS:VLLM_SCALEDOWN_PERIOD
+    enabled: true
+    scaledownPeriod: 300

@@ -45,9 +45,15 @@ spec:
   # fields isn't documented precisely, so the patch below re-states the FULL
   # syncOptions list rather than assuming it appends - correct either way, whether
   # the patch replaces the list wholesale or (harmlessly) concatenates onto it.
+  #
+  # The `source.helm.parameters` block below is how prereqs/apply-env.sh's values reach
+  # each chart now (see argocd/workload-apps/vllm.yaml's comment) - each `if` guards a
+  # field that not every file in this generator sets (open-webui.yaml has no
+  # gpuEnabled, for instance), so a file missing a given field just skips that
+  # parameter entirely rather than erroring or emitting an empty value.
   templatePatch: |
-    {{- if .ignoreReplicas }}
     spec:
+      {{- if .ignoreReplicas }}
       # KEDA (see charts/vllm/templates/httpscaledobject.yaml) drives spec.replicas
       # directly when autoscaling.scaleToZero is on. Without this, selfHeal fights it
       # every reconcile: KEDA scales to 0, Argo CD sees a diff from the chart's
@@ -58,11 +64,34 @@ spec:
           name: {{.name}}
           jsonPointers:
             - /spec/replicas
+      {{- end }}
       syncPolicy:
         syncOptions:
           - CreateNamespace=true
+          {{- if .ignoreReplicas }}
           # Without this, ignoreDifferences above only suppresses the OutOfSync/
           # selfHeal diff - an actual sync would still apply spec.replicas from the
           # manifest and stomp on whatever KEDA set.
           - RespectIgnoreDifferences=true
-    {{- end }}
+          {{- end }}
+      {{- if or .gpuEnabled .scaleToZeroEnabled .scaledownPeriod .chatHost }}
+      source:
+        helm:
+          parameters:
+            {{- if .gpuEnabled }}
+            - name: gpu.enabled
+              value: "{{.gpuEnabled}}"
+            {{- end }}
+            {{- if .scaleToZeroEnabled }}
+            - name: autoscaling.scaleToZero.enabled
+              value: "{{.scaleToZeroEnabled}}"
+            {{- end }}
+            {{- if .scaledownPeriod }}
+            - name: autoscaling.scaleToZero.scaledownPeriod
+              value: "{{.scaledownPeriod}}"
+            {{- end }}
+            {{- if .chatHost }}
+            - name: ingress.host
+              value: "{{.chatHost}}"
+            {{- end }}
+      {{- end }}
