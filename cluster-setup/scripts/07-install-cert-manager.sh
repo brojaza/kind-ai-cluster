@@ -4,7 +4,7 @@
 # request TLS certs declaratively via annotations instead of a manual openssl +
 # kubectl create secret step.
 #
-# Locally this backs a SelfSigned ClusterIssuer (manifests/selfsigned-clusterissuer.yaml,
+# Locally this backs a SelfSigned ClusterIssuer (charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml,
 # git/Argo CD-managed - requires this script to have run first, same CRD-ordering
 # caveat as KEDA's HTTPScaledObject). Moving to a real cluster later means swapping
 # that ClusterIssuer for an ACME/Let's Encrypt or internal-CA one - nothing else
@@ -21,6 +21,6 @@ helm upgrade --install cert-manager jetstack/cert-manager \
   --wait
 
 echo
-echo "cert-manager installed. Argo CD will pick up manifests/selfsigned-clusterissuer.yaml"
+echo "cert-manager installed. Argo CD will pick up charts/argocd-ingress's selfsigned-clusterissuer.yaml"
 echo "(and issue a cert for any Ingress referencing it) on its next sync - force one with:"
 echo "  kubectl -n argocd annotate application argocd-ingress argocd.argoproj.io/refresh=hard --overwrite"

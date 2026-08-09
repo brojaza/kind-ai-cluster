@@ -1,7 +1,7 @@
 # Argo CD UI/API + Open WebUI, host-based routing - see README.md's "Host-based
 # routing" section. The controller's own install is cluster infra (this file); the
 # actual Ingress objects routing traffic to each app are git/Argo CD-managed
-# (manifests/argocd-ingress.yaml, charts/open-webui/templates/ingress.yaml).
+# (charts/argocd-ingress/templates/argocd-ingress.yaml, charts/open-webui/templates/ingress.yaml).
 resource "helm_release" "ingress_nginx" {
   name             = "ingress-nginx"
   repository       = "https://kubernetes.github.io/ingress-nginx"
@@ -21,7 +21,7 @@ resource "helm_release" "ingress_nginx" {
   }
   set {
     # Required for Argo CD's combined UI/gRPC port, not a default flag - see
-    # manifests/argocd-ingress.yaml for why ssl-passthrough is used at all.
+    # charts/argocd-ingress/templates/argocd-ingress.yaml for why ssl-passthrough is used at all.
     name  = "controller.extraArgs.enable-ssl-passthrough"
     value = "true"
   }

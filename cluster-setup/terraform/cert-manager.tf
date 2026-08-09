@@ -1,5 +1,5 @@
 # Issues Open WebUI's TLS cert declaratively - see README.md's "Host-based routing"
-# section. The ClusterIssuer itself (manifests/selfsigned-clusterissuer.yaml) is
+# section. The ClusterIssuer itself (charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml) is
 # git/Argo CD-managed, not Terraform - only cert-manager's operator + CRDs are
 # cluster infra here. Swapping that ClusterIssuer for an ACME/internal-CA one is the
 # only change needed to reuse this exact setup on a real cluster.

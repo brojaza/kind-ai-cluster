@@ -2,7 +2,7 @@
 # Installs the ingress-nginx controller (out-of-band, not git/Argo CD-managed) and
 # configures it for host-based routing (see README.md's "Host-based routing"
 # section), replacing the `kubectl port-forward` workflow for Argo CD. The actual
-# Ingress resources (manifests/argocd-ingress.yaml, charts/open-webui's) are applied
+# Ingress resources (charts/argocd-ingress's, charts/open-webui's) are applied
 # separately by Argo CD itself, via argocd/platform-apps/argocd-ingress.yaml and the
 # open-webui Application - see those files and docs/WINDOWS-SETUP.md for the full
 # explanation of the port reuse.

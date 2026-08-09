@@ -16,7 +16,7 @@ nodes:
         hostPort: 8080
         protocol: TCP
       # Argo CD UI/API, via ingress-nginx (see 05-install-ingress.sh and
-      # manifests/argocd-ingress.yaml) - ingress-nginx's Service is patched to NodePort
+      # charts/argocd-ingress) - ingress-nginx's Service is patched to NodePort
       # 30443 for https, ssl-passthrough straight to argocd-server. Without that setup
       # this port just isn't listening; fall back to `kubectl port-forward
       # svc/argocd-server 8443:443` instead.

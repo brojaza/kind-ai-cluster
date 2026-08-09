@@ -1,6 +1,6 @@
 # Discovered by argocd/appsets/platform-apps.yaml - see there for the Application
-# shape this gets turned into. Manages manifests/argocd-ingress.yaml and
-# manifests/selfsigned-clusterissuer.yaml.
+# shape this gets turned into. Manages charts/argocd-ingress (the Ingress + the
+# selfsigned ClusterIssuer it depends on).
 name: argocd-ingress
-sourcePath: manifests
+sourcePath: charts/argocd-ingress
 namespace: argocd

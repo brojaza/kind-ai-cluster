@@ -69,7 +69,7 @@ service:
 
 ingress:
   # Shares one ingress-nginx entrypoint/port with Argo CD's Ingress
-  # (manifests/argocd-ingress.yaml), dispatching by hostname rather than path - see
+  # (charts/argocd-ingress), dispatching by hostname rather than path - see
   # README.md's "Host-based routing" section. Requires an /etc/hosts entry (or real
   # DNS on a non-local cluster) pointing this host at 127.0.0.1.
   enabled: true
@@ -78,7 +78,7 @@ ingress:
   annotations:
     # Tells cert-manager (cluster-setup/scripts/07-install-cert-manager.sh) to auto-issue and keep
     # renewed a TLS cert for `host` above, stored in the Secret tls.secretName
-    # references below - see manifests/selfsigned-clusterissuer.yaml.
+    # references below - see charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml.
     cert-manager.io/cluster-issuer: selfsigned-issuer
   tls:
     enabled: true

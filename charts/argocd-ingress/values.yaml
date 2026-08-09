@@ -1,0 +1,10 @@
+# Default values for the argocd-ingress chart. See README.md at the repo root for
+# context ("Host-based routing").
+
+# Requires an /etc/hosts entry (or real DNS on a non-local cluster) pointing this host
+# at 127.0.0.1 - see README.md.
+host: argocd.company.test
+
+# templates/selfsigned-clusterissuer.yaml has nothing to parameterize - it's a fixed,
+# singleton local-dev ClusterIssuer (selfSigned: {}). Swapping it for an ACME/internal-CA
+# issuer on a real cluster means editing that template directly, not adding a value here.

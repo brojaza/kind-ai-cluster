@@ -54,6 +54,7 @@ argocd/
 charts/
   vllm/                       Serves the model via vLLM's OpenAI-compatible API
   open-webui/                 Chat UI, points at the vllm Service
+  argocd-ingress/              Argo CD's host-based Ingress + the selfsigned ClusterIssuer
 ```
 
 Both charts deploy into the `llm` namespace by default; Argo CD itself lives in `argocd`.
@@ -254,8 +255,8 @@ out-of-band with `kubectl create secret generic ... --from-literal=token=hf_xxx`
 Argo CD and Open WebUI share one ingress-nginx entrypoint (`https://<host>:8443`),
 dispatched by hostname rather than path - `argocd.company.test` for Argo CD,
 `chat.company.test` for Open WebUI. (Pick real hostnames if you have your own domain;
-these are just placeholders matching what's checked into `manifests/argocd-ingress.yaml`
-and `charts/open-webui/values.yaml`'s `ingress.host`.)
+these are just placeholders matching what's checked into `charts/argocd-ingress/values.yaml`'s
+`host` and `charts/open-webui/values.yaml`'s `ingress.host`.)
 
 Host-based instead of path-based specifically because Argo CD's `argocd` CLI needs a
 real gRPC passthrough connection, which only works if nginx never terminates its TLS -
@@ -284,8 +285,8 @@ Then Argo CD is at `https://argocd.company.test:8443` and Open WebUI at
 
 **Going to a real (non-local) cluster later** only touches infrastructure-provider
 concerns, not anything in this repo's application config: swap the hosts-file entries
-for real DNS records, swap `manifests/selfsigned-clusterissuer.yaml`'s `ClusterIssuer`
-for an ACME/Let's Encrypt or internal-CA one, and swap ingress-nginx's `NodePort`
+for real DNS records, swap `charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml`'s
+`ClusterIssuer` for an ACME/Let's Encrypt or internal-CA one, and swap ingress-nginx's `NodePort`
 Service for `type: LoadBalancer` (or, on a managed cloud cluster, skip self-hosting
 ingress-nginx entirely in favor of that cloud's native Ingress controller - e.g. the
 AWS Load Balancer Controller, GKE's built-in GCE Ingress, or Azure's AGIC). The
@@ -330,11 +331,11 @@ argocd/root-app.yaml`, done for you by `cluster-setup/scripts/04-bootstrap-apps.
 `terraform apply`). It points at `argocd/appsets`, which holds two `ApplicationSet`s:
 
 - **`workload-apps`** watches `argocd/workload-apps/*.yaml` and turns each into an
-  Application deploying that file's `path` (a Helm chart) into its `namespace` -
+  Application deploying that file's `sourcePath` (a Helm chart) into its `namespace` -
   this is what `charts/vllm` and `charts/open-webui` go through.
 - **`platform-apps`** watches `argocd/platform-apps/*.yaml` the same way, for
   cluster-platform config that supports the apps but isn't a workload itself (the
-  Argo CD ingress + cert-manager `ClusterIssuer` under `manifests/`).
+  Argo CD ingress + cert-manager `ClusterIssuer`, `charts/argocd-ingress`).
 
 Both are git generators in "files" mode: adding a new app means dropping a new small
 params file (name/sourcePath/namespace, see `argocd/workload-apps/vllm.yaml` for the
