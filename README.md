@@ -11,7 +11,8 @@ Open WebUI  --OpenAI-compatible HTTP-->  vLLM  --loads-->  Qwen3-Coder-30B-A3B-I
 ```
 
 Two independent Helm charts (`charts/vllm`, `charts/open-webui`), each shipped as its
-own Argo CD `Application`, wired together with an "app of apps" root Application.
+own Argo CD `Application`, discovered automatically by an `ApplicationSet` - see
+"Application structure" below.
 
 ## Read this before you start: hardware reality check
 
@@ -39,17 +40,20 @@ Everything below assumes you've got an NVIDIA GPU on the Kind host.
 
 ```
 kind-config.yaml            Kind cluster definition (port mappings + GPU containerd patch)
-scripts/                    Setup scripts, run in order
+scripts/                    Setup scripts, run in order (or use terraform/ instead - see below)
+terraform/                  Alternative to most of scripts/ - one `terraform apply`
 argocd/
-  root-app.yaml              "App of apps" root Application
-  apps/vllm-app.yaml          Argo CD Application -> charts/vllm
-  apps/open-webui-app.yaml    Argo CD Application -> charts/open-webui
+  root-app.yaml              Bootstrap Application - the one manual `kubectl apply`
+  appsets/                   The two ApplicationSets root-app.yaml points at
+  workload-apps/             Params files -> Applications for charts/vllm, charts/open-webui
+  platform-apps/             Params files -> Applications for cluster-platform config (ingress, cert-manager)
 charts/
   vllm/                       Serves the model via vLLM's OpenAI-compatible API
   open-webui/                 Chat UI, points at the vllm Service
 ```
 
 Both charts deploy into the `llm` namespace by default; Argo CD itself lives in `argocd`.
+See "Application structure" further down for how `argocd/` actually wires together.
 
 ## Prerequisites
 
@@ -142,7 +146,7 @@ then open `https://localhost:8443` (self-signed cert, your browser will warn you
 For persistent access without keeping a port-forward running, install ingress-nginx
 instead. Note this needs the repo pushed to git and the apps bootstrapped first (steps
 4-7 below), since the actual `Ingress` resource is Argo CD-managed
-(`argocd/apps/argocd-ingress-app.yaml`) rather than applied directly:
+(`argocd/platform-apps/argocd-ingress.yaml`) rather than applied directly:
 ```bash
 ./scripts/05-install-ingress.sh
 ```
@@ -309,8 +313,34 @@ snappy wake-ups. Leave `scaleToZero.enabled: false` (the default) to skip all of
 Both charts pin `fullnameOverride` so Service names are always `vllm` and `open-webui`,
 regardless of the Helm release name Argo CD assigns. `charts/open-webui/values.yaml`
 points `backend.baseUrl` at `http://vllm.llm.svc.cluster.local:8000/v1` — update the
-namespace in that value if you change `destination.namespace` in `argocd/apps/*.yaml`
-away from the `llm` default.
+namespace in that value if you change the `namespace` field in
+`argocd/workload-apps/*.yaml` away from the `llm` default.
+
+### Application structure
+
+`argocd/root-app.yaml` is the one manually-applied resource (`kubectl apply -f
+argocd/root-app.yaml`, done for you by `scripts/04-bootstrap-apps.sh` or
+`terraform apply`). It points at `argocd/appsets`, which holds two `ApplicationSet`s:
+
+- **`workload-apps`** watches `argocd/workload-apps/*.yaml` and turns each into an
+  Application deploying that file's `path` (a Helm chart) into its `namespace` -
+  this is what `charts/vllm` and `charts/open-webui` go through.
+- **`platform-apps`** watches `argocd/platform-apps/*.yaml` the same way, for
+  cluster-platform config that supports the apps but isn't a workload itself (the
+  Argo CD ingress + cert-manager `ClusterIssuer` under `manifests/`).
+
+Both are git generators in "files" mode: adding a new app means dropping a new small
+params file (name/path/namespace, see `argocd/workload-apps/vllm.yaml` for the
+shape) into the matching directory - no need to touch the ApplicationSets or
+`root-app.yaml`. Per-app customization (like vllm's `ignoreReplicas: true`, needed so
+Argo CD's `selfHeal` doesn't fight KEDA over `spec.replicas` - see "Scaling vLLM to
+zero when idle") is expressed as extra fields in that same params file, consumed by
+the ApplicationSet's `templatePatch`.
+
+Splitting `workload-apps` from `platform-apps` (rather than one flat list) keeps
+workload-shaped and platform-shaped Applications from needing the same template - if
+this grows into more categories later, each just gets its own directory +
+ApplicationSet following the same pattern.
 
 ## Troubleshooting
 

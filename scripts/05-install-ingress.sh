@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Installs the ingress-nginx controller (out-of-band, not git/Argo CD-managed) and
-# configures it for the Argo CD UI/API at https://localhost:8443, replacing the
-# `kubectl port-forward` workflow. The actual Ingress resource
-# (manifests/argocd-ingress.yaml) is applied separately by Argo CD itself, via
-# argocd/apps/argocd-ingress-app.yaml - see that file and
-# docs/WINDOWS-SETUP.md for the full explanation of the port reuse.
+# configures it for host-based routing (see README.md's "Host-based routing"
+# section), replacing the `kubectl port-forward` workflow for Argo CD. The actual
+# Ingress resources (manifests/argocd-ingress.yaml, charts/open-webui's) are applied
+# separately by Argo CD itself, via argocd/platform-apps/argocd-ingress.yaml and the
+# open-webui Application - see those files and docs/WINDOWS-SETUP.md for the full
+# explanation of the port reuse.
 #
 # Requires scripts/03-install-argocd.sh and scripts/04-bootstrap-apps.sh to have been
 # run first (the latter is what actually creates the Ingress, via Argo CD).
@@ -33,10 +34,11 @@ else
 fi
 
 echo
-echo "Controller ready. The Ingress resource itself is managed by Argo CD -"
-echo "make sure argocd/apps/argocd-ingress-app.yaml has synced:"
-echo "  kubectl -n argocd get application argocd-ingress"
+echo "Controller ready. The Ingress resources themselves are managed by Argo CD -"
+echo "make sure the argocd-ingress and open-webui Applications have synced:"
+echo "  kubectl -n argocd get applications"
 echo
-echo "Once synced, Argo CD is reachable at https://localhost:8443 (self-signed cert,"
-echo "your browser will warn you) - no port-forward needed. Verify with:"
-echo "  curl -k https://localhost:8443/api/version"
+echo "Once synced (and after adding the host entries from README.md's 'Host-based"
+echo "routing' section to your hosts file), Argo CD is reachable at"
+echo "https://argocd.company.test:8443 and Open WebUI at https://chat.company.test:8443"
+echo "(self-signed certs, your browser will warn you) - no port-forward needed."

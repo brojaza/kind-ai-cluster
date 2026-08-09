@@ -1,20 +1,23 @@
 # Bootstrap Application - "app of apps" root. Apply this one manually:
 #   kubectl apply -f argocd/root-app.yaml
-# Everything else (the vllm and open-webui Applications, and in turn their Helm charts)
-# is then synced automatically by Argo CD from git.
+# Points at argocd/appsets, which holds the two ApplicationSets (workload-apps.yaml,
+# platform-apps.yaml) that auto-discover the actual workload/platform Applications
+# from argocd/workload-apps/*.yaml and argocd/platform-apps/*.yaml respectively - see
+# those files.
+# Everything past this one manual apply is synced automatically by Argo CD from git.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: qwen3-coder-stack
+  name: kind-ai-cluster
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
+    repoURL: https://github.com/brojaza/kind-ai-cluster.git
     targetRevision: main
-    path: argocd/apps
+    path: argocd/appsets
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

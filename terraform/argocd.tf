@@ -22,7 +22,11 @@ resource "null_resource" "argocd_root_app" {
   }
 
   provisioner "local-exec" {
-    command = "kubectl --kubeconfig=\"${kind_cluster.this.kubeconfig_path}\" apply -f \"${path.module}/../argocd/root-app.yaml\""
+    # Deliberately unquoted: this repo's path has no spaces, and Windows cmd.exe
+    # (Terraform's local-exec interpreter there) mangles nested quotes into doubled
+    # ones - dropping them works fine cross-platform when there's no whitespace to
+    # protect.
+    command = "kubectl --kubeconfig=${kind_cluster.this.kubeconfig_path} apply -f ${path.module}/../argocd/root-app.yaml"
   }
 
   depends_on = [helm_release.argocd]

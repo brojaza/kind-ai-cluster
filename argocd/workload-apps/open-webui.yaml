@@ -1,0 +1,5 @@
+# Discovered by argocd/appsets/workload-apps.yaml - see there for the Application
+# shape this gets turned into.
+name: open-webui
+path: charts/open-webui
+namespace: llm

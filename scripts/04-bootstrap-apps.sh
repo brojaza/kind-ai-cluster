@@ -13,6 +13,7 @@ fi
 kubectl apply -f "${REPO_ROOT}/argocd/root-app.yaml"
 
 echo
-echo "Root application applied. Argo CD will now pull argocd/apps/ from git and create"
-echo "the vllm and open-webui Applications from there. Track progress with:"
+echo "Root application applied. Argo CD will now pull argocd/appsets/ from git, which"
+echo "in turn discovers and creates the vllm/open-webui/platform Applications from"
+echo "argocd/workload-apps/ and argocd/platform-apps/. Track progress with:"
 echo "  kubectl -n argocd get applications"

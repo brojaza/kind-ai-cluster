@@ -1,0 +1,6 @@
+# Discovered by argocd/appsets/platform-apps.yaml - see there for the Application
+# shape this gets turned into. Manages manifests/argocd-ingress.yaml and
+# manifests/selfsigned-clusterissuer.yaml.
+name: argocd-ingress
+path: manifests
+namespace: argocd

@@ -1,0 +1,42 @@
+# Auto-discovers cluster-platform config (ingress objects, cert-manager issuers, etc.
+# - things that support the apps but aren't workloads themselves): one Application
+# per file matching argocd/platform-apps/*.yaml. Add a new one by dropping a new
+# minimal params file there (see argocd/platform-apps/argocd-ingress.yaml for the
+# shape).
+#
+# Companion to argocd/appsets/workload-apps.yaml - see README.md's "Application
+# structure" section for the workload-vs-platform split.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
+        revision: main
+        files:
+          - path: "argocd/platform-apps/*.yaml"
+  template:
+    metadata:
+      name: '{{.name}}'
+      namespace: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
+        targetRevision: main
+        path: '{{.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

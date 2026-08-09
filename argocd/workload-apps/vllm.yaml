@@ -1,0 +1,7 @@
+# Discovered by argocd/appsets/workload-apps.yaml - see there for the Application
+# shape this gets turned into. ignoreReplicas triggers the KEDA/selfHeal fix - see
+# that file's comments.
+name: vllm
+path: charts/vllm
+namespace: llm
+ignoreReplicas: true

@@ -14,10 +14,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PLACEHOLDER="https://github.com/YOUR_USERNAME/YOUR_REPO.git"
 
-for f in "${REPO_ROOT}/argocd/root-app.yaml" "${REPO_ROOT}"/argocd/apps/*.yaml; do
+for f in "${REPO_ROOT}/argocd/root-app.yaml" "${REPO_ROOT}"/argocd/appsets/*.yaml; do
   sed -i.bak "s|${PLACEHOLDER}|${REPO_URL}|g" "$f"
   rm -f "${f}.bak"
   echo "Updated $f"
 done
 
-echo "Done. repoURL is now ${REPO_URL} in argocd/root-app.yaml and argocd/apps/*.yaml"
+echo "Done. repoURL is now ${REPO_URL} in argocd/root-app.yaml and argocd/appsets/*.yaml"
+echo "(argocd/workload-apps/*.yaml and argocd/platform-apps/*.yaml don't carry a"
+echo "repoURL themselves - the two ApplicationSets above supply it for every"
+echo "Application they generate.)"
