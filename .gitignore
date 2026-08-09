@@ -4,4 +4,12 @@
 .idea/
 .vscode/
 *.tgz
-.claude/settings.local.json
+.claude/
+
+# Terraform - .terraform.lock.hcl IS committed (pins provider versions), everything
+# else here is local state/cache that shouldn't be.
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfplan
+terraform/crash.log

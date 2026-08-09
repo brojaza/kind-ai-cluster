@@ -69,7 +69,40 @@ Both charts deploy into the `llm` namespace by default; Argo CD itself lives in 
   sudo systemctl restart docker
   ```
 
-## Setup
+## Setup with Terraform (recommended)
+
+`terraform/` provisions everything in "Manual setup" below except the two git-related
+steps (pushing this repo, pointing Argo CD's Applications at it) - the Kind cluster
+itself, Argo CD, ingress-nginx, KEDA, and cert-manager, all in one `terraform apply`.
+See the comments in `terraform/*.tf` for what each resource replaces and why (notably:
+Argo CD, ingress-nginx, KEDA, and cert-manager are installed via their official Helm
+charts here rather than the raw-manifest approach some of the shell scripts use, both
+for consistency and because Helm's release tracking sidesteps the `kubectl apply`
+client-side-annotation-size bug Argo CD's own CRDs are large enough to hit).
+
+1. [Install Terraform](https://developer.hashicorp.com/terraform/install) (or, on
+   Windows with choco: `choco install terraform`).
+2. Push this repo to your own git remote and point the Argo CD Applications at it -
+   steps 4 and 5 under "Manual setup" below. Terraform's bootstrap step needs the
+   correct `repoURL` already committed.
+3. ```bash
+   cd terraform
+   terraform init
+   terraform apply
+   ```
+4. Watch Argo CD take it from there: `kubectl -n argocd get applications`.
+
+The `kind` Terraform provider can only *create* a cluster, not adopt an existing one -
+if a cluster named `kind-ai-cluster` already exists (e.g. from the manual scripts
+below), `terraform apply` will fail until you `kind delete cluster --name
+kind-ai-cluster` first (which wipes its PVCs/state - model weights, Open WebUI
+accounts, etc.).
+
+`scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
+the WSL2 path this project defaults to) and `scripts/00-set-repo-url.sh` aren't part
+of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
+
+## Manual setup (without Terraform)
 
 ### 1. Create the cluster
 
