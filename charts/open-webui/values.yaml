@@ -68,10 +68,20 @@ service:
   nodePort: 30080
 
 ingress:
-  enabled: false
-  className: ""
-  host: open-webui.local
-  annotations: {}
+  # Shares one ingress-nginx entrypoint/port with Argo CD's Ingress
+  # (manifests/argocd-ingress.yaml), dispatching by hostname rather than path - see
+  # README.md's "Host-based routing" section. Requires an /etc/hosts entry (or real
+  # DNS on a non-local cluster) pointing this host at 127.0.0.1.
+  enabled: true
+  className: nginx
+  host: chat.company.test
+  annotations:
+    # Tells cert-manager (scripts/07-install-cert-manager.sh) to auto-issue and keep
+    # renewed a TLS cert for `host` above, stored in the Secret tls.secretName
+    # references below - see manifests/selfsigned-clusterissuer.yaml.
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+  tls:
+    enabled: true
 
 persistence:
   enabled: true

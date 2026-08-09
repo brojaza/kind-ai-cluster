@@ -11,8 +11,15 @@
 # negotiation; a second TLS hop in between can break gRPC. Passthrough means nginx
 # never decrypts the traffic - it routes purely on the TLS ClientHello's SNI hostname,
 # which is why `host` below MUST be set (unlike normal Ingress, there's no HTTP
-# Host-header fallback). Set to "localhost" so no /etc/hosts entry is needed - that's
-# what a browser or curl will send as SNI when connecting to https://localhost:8443.
+# Host-header fallback).
+#
+# Host-based routing: this and charts/open-webui's Ingress share the same
+# ingress-nginx controller/port, dispatching on hostname rather than path - see
+# README.md's "Host-based routing" section for why (mainly: Argo CD's gRPC CLI
+# transport needs real passthrough, which a TLS-terminated path-based setup can't
+# give it; a distinct hostname keeps that working while still sharing one entrypoint).
+# Requires an /etc/hosts entry (or real DNS on a non-local cluster) pointing
+# argocd.company.test at 127.0.0.1 - see README.md.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -24,7 +31,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: localhost
+    - host: argocd.company.test
       http:
         paths:
           - path: /

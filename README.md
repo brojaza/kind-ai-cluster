@@ -113,8 +113,7 @@ instead. Note this needs the repo pushed to git and the apps bootstrapped first 
 ```bash
 ./scripts/05-install-ingress.sh
 ```
-Same URL (`https://localhost:8443`), but it stays up on its own - see
-`manifests/argocd-ingress.yaml` for how the ssl-passthrough routing works.
+See "Host-based routing" below for the URL this ends up at and why.
 
 ### 4. Push this project to your own git repo
 
@@ -205,6 +204,49 @@ either `huggingface.token` (fine for a throwaway local cluster, but don't commit
 token to a public repo) or `huggingface.existingSecret` pointing at a Secret you created
 out-of-band with `kubectl create secret generic ... --from-literal=token=hf_xxx`
 (recommended, since it keeps the token out of git entirely).
+
+### Host-based routing
+
+Argo CD and Open WebUI share one ingress-nginx entrypoint (`https://<host>:8443`),
+dispatched by hostname rather than path - `argocd.company.test` for Argo CD,
+`chat.company.test` for Open WebUI. (Pick real hostnames if you have your own domain;
+these are just placeholders matching what's checked into `manifests/argocd-ingress.yaml`
+and `charts/open-webui/values.yaml`'s `ingress.host`.)
+
+Host-based instead of path-based specifically because Argo CD's `argocd` CLI needs a
+real gRPC passthrough connection, which only works if nginx never terminates its TLS -
+a path-based setup forces TLS termination at the ingress for every app behind it,
+breaking that. Splitting by hostname lets Argo CD keep terminating its own TLS
+(`ssl-passthrough`) while Open WebUI gets normal nginx-terminated TLS, on the same
+port.
+
+Setup, after `scripts/05-install-ingress.sh`:
+
+1. Install [cert-manager](https://cert-manager.io) (issues Open WebUI's TLS cert
+   declaratively - Argo CD keeps its own self-signed cert, unrelated to this):
+   ```bash
+   ./scripts/07-install-cert-manager.sh
+   ```
+2. Add both hostnames to your hosts file, pointing at `127.0.0.1` (Windows:
+   `C:\Windows\System32\drivers\etc\hosts`, needs an admin-elevated editor):
+   ```
+   127.0.0.1  argocd.company.test
+   127.0.0.1  chat.company.test
+   ```
+3. Push to git and let Argo CD sync (`argocd-ingress` and `open-webui` Applications).
+
+Then Argo CD is at `https://argocd.company.test:8443` and Open WebUI at
+`https://chat.company.test:8443` (both self-signed - your browser will warn you).
+
+**Going to a real (non-local) cluster later** only touches infrastructure-provider
+concerns, not anything in this repo's application config: swap the hosts-file entries
+for real DNS records, swap `manifests/selfsigned-clusterissuer.yaml`'s `ClusterIssuer`
+for an ACME/Let's Encrypt or internal-CA one, and swap ingress-nginx's `NodePort`
+Service for `type: LoadBalancer` (or, on a managed cloud cluster, skip self-hosting
+ingress-nginx entirely in favor of that cloud's native Ingress controller - e.g. the
+AWS Load Balancer Controller, GKE's built-in GCE Ingress, or Azure's AGIC). The
+`Ingress` objects, hostnames-as-values, and Argo CD app structure stay exactly as they
+are either way.
 
 ### Scaling vLLM to zero when idle
 
