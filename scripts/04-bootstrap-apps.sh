@@ -6,7 +6,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 if grep -rl "YOUR_USERNAME/YOUR_REPO" "${REPO_ROOT}/argocd" >/dev/null 2>&1; then
   echo "ERROR: argocd/*.yaml still contains the placeholder repo URL."
-  echo "Run ./scripts/00-set-repo-url.sh <your-git-url> first, commit + push, then re-run this."
+  echo "Run: cp env-setup/.env.example env-setup/.env, set GIT_REPO_URL, then"
+  echo "./env-setup/set-repo-url.sh, commit + push, then re-run this."
   exit 1
 fi
 

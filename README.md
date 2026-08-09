@@ -103,7 +103,7 @@ kind-ai-cluster` first (which wipes its PVCs/state - model weights, Open WebUI
 accounts, etc.).
 
 `scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
-the WSL2 path this project defaults to) and `scripts/00-set-repo-url.sh` aren't part
+the WSL2 path this project defaults to) and `env-setup/set-repo-url.sh` aren't part
 of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
 
 ## Manual setup (without Terraform)
@@ -165,7 +165,9 @@ git push -u origin main
 ### 5. Point the Argo CD Applications at your repo
 
 ```bash
-./scripts/00-set-repo-url.sh <your-repo-url>
+cp env-setup/.env.example env-setup/.env
+# edit env-setup/.env, set GIT_REPO_URL to your repo's URL
+./env-setup/set-repo-url.sh
 git commit -am "Set repo URL"
 git push
 ```

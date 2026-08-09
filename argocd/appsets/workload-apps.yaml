@@ -15,7 +15,7 @@ spec:
   goTemplate: true
   generators:
     - git:
-        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
+        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run env-setup/set-repo-url.sh
         revision: main
         files:
           - path: "argocd/workload-apps/*.yaml"
@@ -28,7 +28,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
+        repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run env-setup/set-repo-url.sh
         targetRevision: main
         path: '{{.sourcePath}}'
       destination:
