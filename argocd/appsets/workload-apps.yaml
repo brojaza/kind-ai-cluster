@@ -30,7 +30,7 @@ spec:
       source:
         repoURL: https://github.com/brojaza/kind-ai-cluster.git # <-- run scripts/00-set-repo-url.sh
         targetRevision: main
-        path: '{{.path}}'
+        path: '{{.sourcePath}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.namespace}}'

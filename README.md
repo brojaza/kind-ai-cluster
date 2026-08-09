@@ -330,7 +330,7 @@ argocd/root-app.yaml`, done for you by `scripts/04-bootstrap-apps.sh` or
   Argo CD ingress + cert-manager `ClusterIssuer` under `manifests/`).
 
 Both are git generators in "files" mode: adding a new app means dropping a new small
-params file (name/path/namespace, see `argocd/workload-apps/vllm.yaml` for the
+params file (name/sourcePath/namespace, see `argocd/workload-apps/vllm.yaml` for the
 shape) into the matching directory - no need to touch the ApplicationSets or
 `root-app.yaml`. Per-app customization (like vllm's `ignoreReplicas: true`, needed so
 Argo CD's `selfHeal` doesn't fight KEDA over `spec.replicas` - see "Scaling vLLM to

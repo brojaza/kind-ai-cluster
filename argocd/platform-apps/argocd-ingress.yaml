@@ -2,5 +2,5 @@
 # shape this gets turned into. Manages manifests/argocd-ingress.yaml and
 # manifests/selfsigned-clusterissuer.yaml.
 name: argocd-ingress
-path: manifests
+sourcePath: manifests
 namespace: argocd

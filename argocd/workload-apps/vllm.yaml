@@ -2,6 +2,6 @@
 # shape this gets turned into. ignoreReplicas triggers the KEDA/selfHeal fix - see
 # that file's comments.
 name: vllm
-path: charts/vllm
+sourcePath: charts/vllm
 namespace: llm
 ignoreReplicas: true
