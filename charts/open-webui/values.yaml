@@ -74,7 +74,9 @@ ingress:
   # DNS on a non-local cluster) pointing this host at 127.0.0.1.
   enabled: true
   className: nginx
-  host: chat.company.test
+  # Settable via prereqs/.env's CHAT_HOST - see prereqs/apply-env.sh. Keep the
+  # trailing comment on this line if you edit it by hand (substitution anchor).
+  host: chat.company.test # PREREQS:CHAT_HOST
   annotations:
     # Tells cert-manager (cluster-setup/scripts/07-install-cert-manager.sh) to auto-issue and keep
     # renewed a TLS cert for `host` above, stored in the Secret tls.secretName

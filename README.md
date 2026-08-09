@@ -41,7 +41,7 @@ Everything below assumes you've got an NVIDIA GPU on the Kind host.
 ```
 prereqs/                    One-time local setup, done before either bootstrap path below
   kind-gpu.Dockerfile        GPU-enabled kind node image (built manually for scripts/, automatically by terraform/)
-  set-repo-url.sh            Repo URL setup (prereqs/.env -> argocd/*)
+  apply-env.sh                Writes prereqs/.env's values into argocd/* and the relevant charts/*/values.yaml
 cluster-setup/
   scripts/                   Setup scripts, run in order (or use terraform/ instead - see below)
     kind-config.yaml          Kind cluster definition (port mappings + GPU containerd patch)
@@ -110,7 +110,7 @@ kind-ai-cluster` first (which wipes its PVCs/state - model weights, Open WebUI
 accounts, etc.).
 
 `cluster-setup/scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
-the WSL2 path this project defaults to) and `prereqs/set-repo-url.sh` aren't part
+the WSL2 path this project defaults to) and `prereqs/apply-env.sh` aren't part
 of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
 
 ## Manual setup (without Terraform)
@@ -174,7 +174,7 @@ git push -u origin main
 ```bash
 cp prereqs/.env.example prereqs/.env
 # edit prereqs/.env, set GIT_REPO_URL to your repo's URL
-./prereqs/set-repo-url.sh
+./prereqs/apply-env.sh
 git commit -am "Set repo URL"
 git push
 ```
@@ -257,7 +257,9 @@ Argo CD and Open WebUI share one ingress-nginx entrypoint (`https://<host>:8443`
 dispatched by hostname rather than path - `argocd.company.test` for Argo CD,
 `chat.company.test` for Open WebUI. (Pick real hostnames if you have your own domain;
 these are just placeholders matching what's checked into `charts/argocd-ingress/values.yaml`'s
-`host` and `charts/open-webui/values.yaml`'s `ingress.host`.)
+`host` and `charts/open-webui/values.yaml`'s `ingress.host` - settable via
+`prereqs/.env`'s `ARGOCD_HOST`/`CHAT_HOST` instead of editing both files directly, see
+`prereqs/apply-env.sh`.)
 
 Host-based instead of path-based specifically because Argo CD's `argocd` CLI needs a
 real gRPC passthrough connection, which only works if nginx never terminates its TLS -
@@ -305,10 +307,15 @@ back up on the next one, install [KEDA](https://keda.sh) and its HTTP Add-on (se
 ./cluster-setup/scripts/06-install-keda-http.sh
 ```
 
-Then flip `autoscaling.scaleToZero.enabled` to `true` in `charts/vllm/values.yaml`, and
-update `backend.baseUrl` in `charts/open-webui/values.yaml` to point at the
-`vllm-proxy` Service it creates instead of `vllm` directly (both files have the exact
-values commented in place). Commit and push - Argo CD picks it up like any other change.
+Then flip `autoscaling.scaleToZero.enabled` to `true` in `charts/vllm/values.yaml`
+(or set `VLLM_SCALE_TO_ZERO_ENABLED=true` in `prereqs/.env` and run
+`prereqs/apply-env.sh` - along with `VLLM_GPU_ENABLED`/`VLLM_SCALEDOWN_PERIOD` for
+`gpu.enabled`/`scaledownPeriod` the same way), and update `backend.baseUrl` in
+`charts/open-webui/values.yaml` to point at the `vllm-proxy` Service it creates
+instead of `vllm` directly (both files have the exact values commented in place -
+`apply-env.sh` reminds you about this one but doesn't do it for you, since Open
+WebUI's DB caches whatever `baseUrl` was live on its first boot). Commit and push -
+Argo CD picks it up like any other change.
 
 This is genuinely extra infrastructure (an operator + CRDs + a rerouted traffic path,
 kept out-of-band from Argo CD the same way ingress-nginx is - see
