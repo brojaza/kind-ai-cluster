@@ -82,7 +82,7 @@ the running node container directly:
 **3a. Custom kind node image** with the env vars baked in, so Docker's `nvidia` runtime
 has something to trigger on when kind creates the node container:
 
-See `cluster-setup/scripts/kind-gpu.Dockerfile`:
+See `prereqs/kind-gpu.Dockerfile`:
 ```dockerfile
 FROM kindest/node:v1.30.0
 ENV NVIDIA_VISIBLE_DEVICES=all
@@ -90,8 +90,10 @@ ENV NVIDIA_DRIVER_CAPABILITIES=all
 ```
 
 ```
-docker build -t kindest/node:v1.30.0-gpu -f cluster-setup/scripts/kind-gpu.Dockerfile .
+docker build -t kindest/node:v1.30.0-gpu -f prereqs/kind-gpu.Dockerfile .
 ```
+
+(If you're using the Terraform path instead of the scripts, skip this - `cluster-setup/terraform/gpu-image.tf` builds this image automatically as part of `terraform apply`.)
 
 `cluster-setup/scripts/kind-config.yaml` then pins the control-plane node to this image:
 ```yaml

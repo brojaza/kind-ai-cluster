@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replaces the placeholder repoURL in every Argo CD manifest that carries one
-# (argocd/root-app.yaml, argocd/appsets/*.yaml) with GIT_REPO_URL from env-setup/.env.
+# (argocd/root-app.yaml, argocd/appsets/*.yaml) with GIT_REPO_URL from prereqs/.env.
 #
 # Only those files need it: argocd/workload-apps/*.yaml and argocd/platform-apps/*.yaml
 # (the per-app params) don't carry a repoURL themselves - the two ApplicationSets
@@ -20,7 +20,7 @@ ENV_FILE="${SCRIPT_DIR}/.env"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "ERROR: ${ENV_FILE} not found."
-  echo "Run: cp env-setup/.env.example env-setup/.env, then edit GIT_REPO_URL in it."
+  echo "Run: cp prereqs/.env.example prereqs/.env, then edit GIT_REPO_URL in it."
   exit 1
 fi
 

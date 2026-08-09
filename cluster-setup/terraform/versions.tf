@@ -14,5 +14,9 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.13"
     }
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 4.0"
+    }
   }
 }

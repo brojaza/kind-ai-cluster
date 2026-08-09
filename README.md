@@ -39,11 +39,13 @@ Everything below assumes you've got an NVIDIA GPU on the Kind host.
 ## Repo layout
 
 ```
+prereqs/                    One-time local setup, done before either bootstrap path below
+  kind-gpu.Dockerfile        GPU-enabled kind node image (built manually for scripts/, automatically by terraform/)
+  set-repo-url.sh            Repo URL setup (prereqs/.env -> argocd/*)
 cluster-setup/
   scripts/                   Setup scripts, run in order (or use terraform/ instead - see below)
     kind-config.yaml          Kind cluster definition (port mappings + GPU containerd patch)
   terraform/                 Alternative to most of scripts/ - one `terraform apply`
-env-setup/                  One-time repo URL setup (env-setup/.env -> argocd/*)
 argocd/
   root-app.yaml              Bootstrap Application - the one manual `kubectl apply`
   appsets/                   The two ApplicationSets root-app.yaml points at
@@ -79,7 +81,8 @@ See "Application structure" further down for how `argocd/` actually wires togeth
 
 `cluster-setup/terraform/` provisions everything in "Manual setup" below except the two git-related
 steps (pushing this repo, pointing Argo CD's Applications at it) - the Kind cluster
-itself, Argo CD, ingress-nginx, KEDA, and cert-manager, all in one `terraform apply`.
+itself (including building its GPU node image from `prereqs/kind-gpu.Dockerfile`), Argo CD,
+ingress-nginx, KEDA, and cert-manager, all in one `terraform apply`.
 See the comments in `cluster-setup/terraform/*.tf` for what each resource replaces and why (notably:
 Argo CD, ingress-nginx, KEDA, and cert-manager are installed via their official Helm
 charts here rather than the raw-manifest approach some of the shell scripts use, both
@@ -105,7 +108,7 @@ kind-ai-cluster` first (which wipes its PVCs/state - model weights, Open WebUI
 accounts, etc.).
 
 `cluster-setup/scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
-the WSL2 path this project defaults to) and `env-setup/set-repo-url.sh` aren't part
+the WSL2 path this project defaults to) and `prereqs/set-repo-url.sh` aren't part
 of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
 
 ## Manual setup (without Terraform)
@@ -167,9 +170,9 @@ git push -u origin main
 ### 5. Point the Argo CD Applications at your repo
 
 ```bash
-cp env-setup/.env.example env-setup/.env
-# edit env-setup/.env, set GIT_REPO_URL to your repo's URL
-./env-setup/set-repo-url.sh
+cp prereqs/.env.example prereqs/.env
+# edit prereqs/.env, set GIT_REPO_URL to your repo's URL
+./prereqs/set-repo-url.sh
 git commit -am "Set repo URL"
 git push
 ```

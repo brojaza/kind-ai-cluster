@@ -1,5 +1,9 @@
 provider "kind" {}
 
+# Talks to the same local Docker daemon kind itself uses (default host detection -
+# npipe on Windows, unix socket on Linux/macOS - no explicit `host` needed).
+provider "docker" {}
+
 # kubernetes/helm providers authenticate straight off kind_cluster's exported client
 # cert - no kubeconfig file juggling needed. Both must wait for the cluster to exist
 # before their credentials are meaningful, hence depending on kind_cluster.this

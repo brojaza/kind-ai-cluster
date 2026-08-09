@@ -21,9 +21,10 @@ resource "kind_cluster" "this" {
     node {
       role = "control-plane"
       # Custom image = kindest/node:v1.30.0 + NVIDIA_VISIBLE_DEVICES/NVIDIA_DRIVER_CAPABILITIES
-      # env vars baked in (see docs/WINDOWS-SETUP.md). Needed because Docker's "nvidia"
-      # default runtime only injects the GPU into a container whose env already
-      # requests it, and kind's stock node image doesn't set that.
+      # env vars baked in (see docs/WINDOWS-SETUP.md and prereqs/kind-gpu.Dockerfile). Needed
+      # because Docker's "nvidia" default runtime only injects the GPU into a container
+      # whose env already requests it, and kind's stock node image doesn't set that.
+      # Built automatically by gpu-image.tf - depends_on below waits for that build.
       image = "kindest/node:v1.30.0-gpu"
 
       # Open WebUI - matches charts/open-webui values.yaml service.nodePort.
@@ -58,4 +59,6 @@ resource "kind_cluster" "this" {
       TOML
     ]
   }
+
+  depends_on = [docker_image.kind_gpu_node]
 }

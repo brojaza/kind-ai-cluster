@@ -26,7 +26,15 @@ resource "null_resource" "argocd_root_app" {
     # (Terraform's local-exec interpreter there) mangles nested quotes into doubled
     # ones - dropping them works fine cross-platform when there's no whitespace to
     # protect.
-    command = "kubectl --kubeconfig=${kind_cluster.this.kubeconfig_path} apply -f ${path.module}/../../argocd/root-app.yaml"
+    #
+    # Deliberately NOT kind_cluster.this.kubeconfig_path: that attribute is
+    # ForceNew + Computed-only-once - the kind provider writes it to
+    # "<cwd at apply time>/<name>-config" the first time the cluster is created and
+    # never touches it again, so it goes stale (still pointing at the pre-move
+    # terraform/ directory) if this module's path ever changes without recreating
+    # the cluster. Recomputing it the same way the provider does, relative to
+    # path.module, self-heals instead.
+    command = "kubectl --kubeconfig=${path.module}/${var.cluster_name}-config apply -f ${path.module}/../../argocd/root-app.yaml"
   }
 
   depends_on = [helm_release.argocd]
