@@ -1,0 +1,6 @@
+# Default values for the cert-manager chart. See README.md at the repo root for context
+# ("Host-based routing").
+#
+# Nothing to parameterize yet - templates/selfsigned-clusterissuer.yaml is a fixed,
+# singleton local-dev ClusterIssuer (selfSigned: {}). Swapping it for an ACME/
+# internal-CA issuer on a real cluster means editing that template directly.

@@ -78,7 +78,7 @@ ingress:
   annotations:
     # Tells cert-manager (cluster-setup/scripts/07-install-cert-manager.sh) to auto-issue and keep
     # renewed a TLS cert for `host` above, stored in the Secret tls.secretName
-    # references below - see charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml.
+    # references below - see charts/cert-manager/templates/selfsigned-clusterissuer.yaml.
     cert-manager.io/cluster-issuer: selfsigned-issuer
   tls:
     enabled: true

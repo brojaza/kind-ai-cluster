@@ -1,0 +1,9 @@
+# Discovered by argocd/appsets/platform-apps.yaml - see there for the Application
+# shape this gets turned into. Manages charts/cert-manager (the selfsigned
+# ClusterIssuer charts/open-webui's Ingress depends on). Named "-issuer" here, not
+# just "cert-manager", to not be confused with the cert-manager operator itself
+# (a separate out-of-band Helm release - see cluster-setup/terraform/cert-manager.tf
+# or 07-install-cert-manager.sh).
+name: cert-manager-issuer
+sourcePath: charts/cert-manager
+namespace: cert-manager

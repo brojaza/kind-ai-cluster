@@ -1,6 +1,7 @@
 # Discovered by argocd/appsets/platform-apps.yaml - see there for the Application
-# shape this gets turned into. Manages charts/argocd-ingress (the Ingress + the
-# selfsigned ClusterIssuer it depends on).
+# shape this gets turned into. Manages charts/argocd-ingress (just the Ingress - see
+# cert-manager-issuer.yaml for the selfsigned ClusterIssuer Open WebUI's Ingress
+# actually depends on).
 name: argocd-ingress
 sourcePath: charts/argocd-ingress
 namespace: argocd

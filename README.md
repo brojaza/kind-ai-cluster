@@ -54,7 +54,8 @@ argocd/
 charts/
   vllm/                       Serves the model via vLLM's OpenAI-compatible API
   open-webui/                 Chat UI, points at the vllm Service
-  argocd-ingress/              Argo CD's host-based Ingress + the selfsigned ClusterIssuer
+  argocd-ingress/              Argo CD's host-based Ingress
+  cert-manager/                 The selfsigned ClusterIssuer open-webui's Ingress depends on
 ```
 
 Both charts deploy into the `llm` namespace by default; Argo CD itself lives in `argocd`.
@@ -285,7 +286,7 @@ Then Argo CD is at `https://argocd.company.test:8443` and Open WebUI at
 
 **Going to a real (non-local) cluster later** only touches infrastructure-provider
 concerns, not anything in this repo's application config: swap the hosts-file entries
-for real DNS records, swap `charts/argocd-ingress/templates/selfsigned-clusterissuer.yaml`'s
+for real DNS records, swap `charts/cert-manager/templates/selfsigned-clusterissuer.yaml`'s
 `ClusterIssuer` for an ACME/Let's Encrypt or internal-CA one, and swap ingress-nginx's `NodePort`
 Service for `type: LoadBalancer` (or, on a managed cloud cluster, skip self-hosting
 ingress-nginx entirely in favor of that cloud's native Ingress controller - e.g. the
@@ -334,8 +335,10 @@ argocd/root-app.yaml`, done for you by `cluster-setup/scripts/04-bootstrap-apps.
   Application deploying that file's `sourcePath` (a Helm chart) into its `namespace` -
   this is what `charts/vllm` and `charts/open-webui` go through.
 - **`platform-apps`** watches `argocd/platform-apps/*.yaml` the same way, for
-  cluster-platform config that supports the apps but isn't a workload itself (the
-  Argo CD ingress + cert-manager `ClusterIssuer`, `charts/argocd-ingress`).
+  cluster-platform config that supports the apps but isn't a workload itself: the
+  Argo CD ingress (`charts/argocd-ingress`) and the selfsigned `ClusterIssuer`
+  (`charts/cert-manager`) Open WebUI's ingress depends on - two separate charts/
+  Applications since they're consumed by different things.
 
 Both are git generators in "files" mode: adding a new app means dropping a new small
 params file (name/sourcePath/namespace, see `argocd/workload-apps/vllm.yaml` for the

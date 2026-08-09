@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cert-manager
+description: cert-manager ClusterIssuer(s) - config only, not the cert-manager operator itself (see cluster-setup/terraform/cert-manager.tf or 07-install-cert-manager.sh for that)
+type: application
+version: 0.1.0
