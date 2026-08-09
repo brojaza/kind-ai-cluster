@@ -1,6 +1,7 @@
 # Self-signed cert issuer for local dev - see README.md's "Host-based routing" section
-# for why this exists. Requires cert-manager installed first (scripts/07-install-
-# cert-manager.sh) - its CRDs must exist before Argo CD can sync this.
+# for why this exists. Requires cert-manager installed first
+# (cluster-setup/scripts/07-install-cert-manager.sh) - its CRDs must exist before Argo
+# CD can sync this.
 #
 # To reuse this exact setup (and the Ingress objects referencing it) in a real
 # cluster, swap this ClusterIssuer for an ACME/Let's Encrypt one (needs public DNS)

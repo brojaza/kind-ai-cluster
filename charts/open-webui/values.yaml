@@ -64,7 +64,7 @@ webuiSecretKey: "change-this-to-a-random-string"
 service:
   type: NodePort
   port: 8080
-  # Matches the hostPort mapping in kind-config.yaml (30080 -> 8080).
+  # Matches the hostPort mapping in cluster-setup/scripts/kind-config.yaml (30080 -> 8080).
   nodePort: 30080
 
 ingress:
@@ -76,7 +76,7 @@ ingress:
   className: nginx
   host: chat.company.test
   annotations:
-    # Tells cert-manager (scripts/07-install-cert-manager.sh) to auto-issue and keep
+    # Tells cert-manager (cluster-setup/scripts/07-install-cert-manager.sh) to auto-issue and keep
     # renewed a TLS cert for `host` above, stored in the Secret tls.secretName
     # references below - see manifests/selfsigned-clusterissuer.yaml.
     cert-manager.io/cluster-issuer: selfsigned-issuer

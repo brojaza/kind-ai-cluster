@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs KEDA core + the KEDA HTTP Add-on, cluster infra needed for scaling vLLM to
 # zero replicas when idle (freeing the GPU) and transparently waking it back up on the
-# next request. Out-of-band, same as ingress-nginx (scripts/05-install-ingress.sh) -
+# next request. Out-of-band, same as ingress-nginx (05-install-ingress.sh) -
 # not git/Argo CD-managed.
 #
 # After this script, enable it per-app via values.yaml (see charts/vllm/values.yaml's

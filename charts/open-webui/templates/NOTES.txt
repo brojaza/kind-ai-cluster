@@ -2,7 +2,7 @@ Open WebUI is starting.
 
 {{- if eq .Values.service.type "NodePort" }}
 
-This project's kind-config.yaml maps host port 8080 -> nodePort {{ .Values.service.nodePort }}.
+This project's cluster-setup/scripts/kind-config.yaml maps host port 8080 -> nodePort {{ .Values.service.nodePort }}.
 Once the pod is Ready, open:
 
   http://localhost:8080

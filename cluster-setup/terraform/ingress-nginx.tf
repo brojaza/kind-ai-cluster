@@ -14,8 +14,8 @@ resource "helm_release" "ingress_nginx" {
     value = "NodePort"
   }
   set {
-    # Matches kind-config.yaml's hostPort:8443 -> containerPort:30443 mapping
-    # (terraform/cluster.tf here).
+    # Matches cluster-setup/scripts/kind-config.yaml's hostPort:8443 ->
+    # containerPort:30443 mapping (cluster.tf here).
     name  = "controller.service.nodePorts.https"
     value = "30443"
   }

@@ -137,7 +137,7 @@ autoscaling:
     # Scales the vllm Deployment to 0 replicas after `scaledownPeriod` seconds with no
     # requests (freeing the GPU/VRAM), and transparently wakes it back up on the next
     # request. Requires KEDA + the KEDA HTTP Add-on installed first
-    # (scripts/06-install-keda-http.sh) - if their CRDs aren't present, Argo CD will
+    # (cluster-setup/scripts/06-install-keda-http.sh) - if their CRDs aren't present, Argo CD will
     # fail to sync this chart with this flag on. Leave false until that's done.
     #
     # When true this also creates an ExternalName Service ("vllm-proxy") that routes

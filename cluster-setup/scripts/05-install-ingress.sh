@@ -7,7 +7,7 @@
 # open-webui Application - see those files and docs/WINDOWS-SETUP.md for the full
 # explanation of the port reuse.
 #
-# Requires scripts/03-install-argocd.sh and scripts/04-bootstrap-apps.sh to have been
+# Requires 03-install-argocd.sh and 04-bootstrap-apps.sh to have been
 # run first (the latter is what actually creates the Ingress, via Argo CD).
 set -euo pipefail
 

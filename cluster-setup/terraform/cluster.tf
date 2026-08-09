@@ -4,9 +4,10 @@ variable "cluster_name" {
   default     = "kind-ai-cluster"
 }
 
-# Mirrors kind-config.yaml. NOTE: the kind provider can only CREATE a cluster, not
-# adopt/modify an existing one - if a cluster named var.cluster_name already exists
-# (e.g. created via scripts/01-create-kind-cluster.sh), `terraform apply` will fail.
+# Mirrors cluster-setup/scripts/kind-config.yaml. NOTE: the kind provider can only
+# CREATE a cluster, not adopt/modify an existing one - if a cluster named
+# var.cluster_name already exists (e.g. created via
+# cluster-setup/scripts/01-create-kind-cluster.sh), `terraform apply` will fail.
 # Delete it first (`kind delete cluster --name <name>`, which wipes its PVCs/state)
 # to hand cluster lifecycle over to Terraform.
 resource "kind_cluster" "this" {

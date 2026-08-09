@@ -66,7 +66,8 @@ the running node container directly:
 
 1. Docker's `nvidia` runtime only injects the GPU into a container whose environment
    already has `NVIDIA_VISIBLE_DEVICES=all` set. Kind's stock node image doesn't set
-   this, and `kind-config.yaml` has no field to inject env vars into the node container.
+   this, and `cluster-setup/scripts/kind-config.yaml` has no field to inject env vars
+   into the node container.
 2. Even after fixing that, Docker Desktop's WSL2 GPU support turned out to be its own
    internal mechanism - not the classic Linux `nvidia-container-toolkit` +
    `nvidia-container-runtime` + `/dev/nvidia*` device model at all. Windows/WSL2 exposes
@@ -81,7 +82,7 @@ the running node container directly:
 **3a. Custom kind node image** with the env vars baked in, so Docker's `nvidia` runtime
 has something to trigger on when kind creates the node container:
 
-See `kind-gpu.Dockerfile` at the repo root:
+See `cluster-setup/scripts/kind-gpu.Dockerfile`:
 ```dockerfile
 FROM kindest/node:v1.30.0
 ENV NVIDIA_VISIBLE_DEVICES=all
@@ -89,10 +90,10 @@ ENV NVIDIA_DRIVER_CAPABILITIES=all
 ```
 
 ```
-docker build -t kindest/node:v1.30.0-gpu -f kind-gpu.Dockerfile .
+docker build -t kindest/node:v1.30.0-gpu -f cluster-setup/scripts/kind-gpu.Dockerfile .
 ```
 
-`kind-config.yaml` then pins the control-plane node to this image:
+`cluster-setup/scripts/kind-config.yaml` then pins the control-plane node to this image:
 ```yaml
 nodes:
   - role: control-plane
@@ -166,7 +167,7 @@ worth knowing about regardless of platform:
 ## Deploying (Helm only, no Argo CD)
 
 ```bash
-kind create cluster --config kind-config.yaml
+kind create cluster --config cluster-setup/scripts/kind-config.yaml
 helm install vllm charts/vllm -n llm --create-namespace
 kubectl -n llm logs -f deploy/vllm        # wait for "Application startup complete"
 helm install open-webui charts/open-webui -n llm
@@ -185,8 +186,8 @@ kubectl -n llm exec deploy/open-webui -- curl -sS http://vllm:8000/v1/models
 - **`docker exec <node> nvidia-smi` fails / no `/dev/dxg` in the node**: the node was
   created from the stock `kindest/node` image, not the `-gpu` custom one. Rebuild the
   image and recreate the cluster (`kind delete cluster --name kind-ai-cluster` then
-  `kind create cluster --config kind-config.yaml`) - the node image can't be swapped on a
-  running cluster.
+  `kind create cluster --config cluster-setup/scripts/kind-config.yaml`) - the node
+  image can't be swapped on a running cluster.
 - **vLLM pod `Pending` forever**: check `kubectl -n llm describe pod` for
   `Insufficient memory` - the WSL2 VM's RAM allocation (`wsl -d docker-desktop free -h`)
   needs to exceed `resources.requests.memory` with room to spare for Kind's own overhead.

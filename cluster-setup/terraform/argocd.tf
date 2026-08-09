@@ -18,7 +18,7 @@ resource "helm_release" "argocd" {
 # chicken-and-egg gotcha with that resource type. A plain kubectl apply sidesteps it.
 resource "null_resource" "argocd_root_app" {
   triggers = {
-    root_app_sha = filesha256("${path.module}/../argocd/root-app.yaml")
+    root_app_sha = filesha256("${path.module}/../../argocd/root-app.yaml")
   }
 
   provisioner "local-exec" {
@@ -26,7 +26,7 @@ resource "null_resource" "argocd_root_app" {
     # (Terraform's local-exec interpreter there) mangles nested quotes into doubled
     # ones - dropping them works fine cross-platform when there's no whitespace to
     # protect.
-    command = "kubectl --kubeconfig=${kind_cluster.this.kubeconfig_path} apply -f ${path.module}/../argocd/root-app.yaml"
+    command = "kubectl --kubeconfig=${kind_cluster.this.kubeconfig_path} apply -f ${path.module}/../../argocd/root-app.yaml"
   }
 
   depends_on = [helm_release.argocd]

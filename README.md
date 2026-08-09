@@ -39,9 +39,11 @@ Everything below assumes you've got an NVIDIA GPU on the Kind host.
 ## Repo layout
 
 ```
-kind-config.yaml            Kind cluster definition (port mappings + GPU containerd patch)
-scripts/                    Setup scripts, run in order (or use terraform/ instead - see below)
-terraform/                  Alternative to most of scripts/ - one `terraform apply`
+cluster-setup/
+  scripts/                   Setup scripts, run in order (or use terraform/ instead - see below)
+    kind-config.yaml          Kind cluster definition (port mappings + GPU containerd patch)
+  terraform/                 Alternative to most of scripts/ - one `terraform apply`
+env-setup/                  One-time repo URL setup (env-setup/.env -> argocd/*)
 argocd/
   root-app.yaml              Bootstrap Application - the one manual `kubectl apply`
   appsets/                   The two ApplicationSets root-app.yaml points at
@@ -75,10 +77,10 @@ See "Application structure" further down for how `argocd/` actually wires togeth
 
 ## Setup with Terraform (recommended)
 
-`terraform/` provisions everything in "Manual setup" below except the two git-related
+`cluster-setup/terraform/` provisions everything in "Manual setup" below except the two git-related
 steps (pushing this repo, pointing Argo CD's Applications at it) - the Kind cluster
 itself, Argo CD, ingress-nginx, KEDA, and cert-manager, all in one `terraform apply`.
-See the comments in `terraform/*.tf` for what each resource replaces and why (notably:
+See the comments in `cluster-setup/terraform/*.tf` for what each resource replaces and why (notably:
 Argo CD, ingress-nginx, KEDA, and cert-manager are installed via their official Helm
 charts here rather than the raw-manifest approach some of the shell scripts use, both
 for consistency and because Helm's release tracking sidesteps the `kubectl apply`
@@ -90,7 +92,7 @@ client-side-annotation-size bug Argo CD's own CRDs are large enough to hit).
    steps 4 and 5 under "Manual setup" below. Terraform's bootstrap step needs the
    correct `repoURL` already committed.
 3. ```bash
-   cd terraform
+   cd cluster-setup/terraform
    terraform init
    terraform apply
    ```
@@ -102,7 +104,7 @@ below), `terraform apply` will fail until you `kind delete cluster --name
 kind-ai-cluster` first (which wipes its PVCs/state - model weights, Open WebUI
 accounts, etc.).
 
-`scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
+`cluster-setup/scripts/02-setup-gpu-support.sh` (native-Linux-only GPU device plugin, not used on
 the WSL2 path this project defaults to) and `env-setup/set-repo-url.sh` aren't part
 of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
 
@@ -111,18 +113,18 @@ of the Terraform config - see "GPU passthrough for Kind" and step 5 below.
 ### 1. Create the cluster
 
 ```bash
-./scripts/01-create-kind-cluster.sh
+./cluster-setup/scripts/01-create-kind-cluster.sh
 ```
 
 ### 2. GPU passthrough for Kind (skip only if you're doing the CPU-model smoke test)
 
 1. Confirm the prerequisite NVIDIA Container Toolkit step above is done.
-2. Uncomment the `containerdConfigPatches` block at the bottom of `kind-config.yaml`.
+2. Uncomment the `containerdConfigPatches` block at the bottom of `cluster-setup/scripts/kind-config.yaml`.
 3. Recreate the cluster so the patch takes effect: `kind delete cluster --name kind-ai-cluster`
    then re-run step 1.
 4. Install the in-cluster device plugin so nodes advertise `nvidia.com/gpu`:
    ```bash
-   ./scripts/02-setup-gpu-support.sh
+   ./cluster-setup/scripts/02-setup-gpu-support.sh
    ```
 5. Verify: `kubectl get nodes -o=custom-columns=NAME:.metadata.name,GPUs:.status.allocatable.'nvidia\.com/gpu'`
    should show `1` (or however many GPUs you exposed) instead of `<none>`.
@@ -135,7 +137,7 @@ with `kubectl -n kube-system logs -l name=nvidia-device-plugin-ds`.
 ### 3. Install Argo CD
 
 ```bash
-./scripts/03-install-argocd.sh
+./cluster-setup/scripts/03-install-argocd.sh
 ```
 This prints the initial admin password at the end. Reach the UI with:
 ```bash
@@ -148,7 +150,7 @@ instead. Note this needs the repo pushed to git and the apps bootstrapped first 
 4-7 below), since the actual `Ingress` resource is Argo CD-managed
 (`argocd/platform-apps/argocd-ingress.yaml`) rather than applied directly:
 ```bash
-./scripts/05-install-ingress.sh
+./cluster-setup/scripts/05-install-ingress.sh
 ```
 See "Host-based routing" below for the URL this ends up at and why.
 
@@ -186,7 +188,7 @@ through Argo CD, so the two don't fight over the same resources.
 ### 7. Bootstrap via Argo CD
 
 ```bash
-./scripts/04-bootstrap-apps.sh
+./cluster-setup/scripts/04-bootstrap-apps.sh
 ```
 Watch it sync:
 ```bash
@@ -200,7 +202,7 @@ loading them onto the GPU. Tail logs with `kubectl -n llm logs -f deploy/vllm` u
 see the Uvicorn "Application startup complete" line.
 
 Once both pods are `Ready`, open **http://localhost:8080** (mapped from the Open WebUI
-NodePort via `kind-config.yaml`). Register the first account — it becomes the admin.
+NodePort via `cluster-setup/scripts/kind-config.yaml`). Register the first account — it becomes the admin.
 The model shows up in the model picker as `Qwen3-Coder-30B-A3B-Instruct`.
 
 ## Configuration notes
@@ -259,12 +261,12 @@ breaking that. Splitting by hostname lets Argo CD keep terminating its own TLS
 (`ssl-passthrough`) while Open WebUI gets normal nginx-terminated TLS, on the same
 port.
 
-Setup, after `scripts/05-install-ingress.sh`:
+Setup, after `cluster-setup/scripts/05-install-ingress.sh`:
 
 1. Install [cert-manager](https://cert-manager.io) (issues Open WebUI's TLS cert
    declaratively - Argo CD keeps its own self-signed cert, unrelated to this):
    ```bash
-   ./scripts/07-install-cert-manager.sh
+   ./cluster-setup/scripts/07-install-cert-manager.sh
    ```
 2. Add both hostnames to your hosts file, pointing at `127.0.0.1` (Windows:
    `C:\Windows\System32\drivers\etc\hosts`, needs an admin-elevated editor):
@@ -295,7 +297,7 @@ back up on the next one, install [KEDA](https://keda.sh) and its HTTP Add-on (se
 `docs/WINDOWS-SETUP.md` or [keda.sh](https://keda.sh) for what these actually are):
 
 ```bash
-./scripts/06-install-keda-http.sh
+./cluster-setup/scripts/06-install-keda-http.sh
 ```
 
 Then flip `autoscaling.scaleToZero.enabled` to `true` in `charts/vllm/values.yaml`, and
@@ -305,7 +307,7 @@ values commented in place). Commit and push - Argo CD picks it up like any other
 
 This is genuinely extra infrastructure (an operator + CRDs + a rerouted traffic path,
 kept out-of-band from Argo CD the same way ingress-nginx is - see
-`scripts/06-install-keda-http.sh`), and the first request after an idle period will
+`cluster-setup/scripts/06-install-keda-http.sh`), and the first request after an idle period will
 hang for up to a couple of minutes while vLLM reloads the model and recompiles its GPU
 kernels, so it's worth it mainly if freeing the GPU between sessions matters more than
 snappy wake-ups. Leave `scaleToZero.enabled: false` (the default) to skip all of this.
@@ -321,7 +323,7 @@ namespace in that value if you change the `namespace` field in
 ### Application structure
 
 `argocd/root-app.yaml` is the one manually-applied resource (`kubectl apply -f
-argocd/root-app.yaml`, done for you by `scripts/04-bootstrap-apps.sh` or
+argocd/root-app.yaml`, done for you by `cluster-setup/scripts/04-bootstrap-apps.sh` or
 `terraform apply`). It points at `argocd/appsets`, which holds two `ApplicationSet`s:
 
 - **`workload-apps`** watches `argocd/workload-apps/*.yaml` and turns each into an

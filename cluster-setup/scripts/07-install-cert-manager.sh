@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs cert-manager - out-of-band cluster infra, same as ingress-nginx
-# (scripts/05) and KEDA (scripts/06), not git/Argo CD-managed. Lets Ingress objects
+# (05) and KEDA (06), not git/Argo CD-managed. Lets Ingress objects
 # request TLS certs declaratively via annotations instead of a manual openssl +
 # kubectl create secret step.
 #
